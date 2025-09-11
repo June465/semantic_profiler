@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+SQLAlchemy
+pymysql 
+python-dotenv
+# For resume parsing
+pdfplumber
+python-docx
+# For RAG
+langchain
+sentence-transformers
+faiss-cpu # or faiss-gpu if you have a GPU
+# For LLM 
+google-generativeai
