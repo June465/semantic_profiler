@@ -1,15 +1,23 @@
-import google.generativeai as genai
+import openai # <--- CHANGE: Import OpenAI client
 import json
 import os
-import re 
+import re
 from typing import List, Dict, Any, Optional
-from google.api_core.exceptions import GoogleAPIError
+
+# No longer need GoogleAPIError, use OpenAI's equivalent or general Exception
+# from google.api_core.exceptions import GoogleAPIError
 
 class LLMEvaluationError(Exception):
     """Custom exception for LLM evaluation failures."""
     pass
 
 def construct_evaluation_prompt(job_description: str, candidate_chunks: List[str]) -> str:
+    """
+    Constructs a detailed prompt for the LLM to evaluate a candidate based on job description
+    and relevant resume chunks.
+    (This function's logic and the prompt template itself remain largely the same,
+     as the desired output format for the LLM is independent of the provider.)
+    """
     if not job_description or not candidate_chunks:
         raise ValueError("Job description and candidate chunks cannot be empty.")
 
@@ -36,48 +44,92 @@ def construct_evaluation_prompt(job_description: str, candidate_chunks: List[str
     4.  `summary`: A concise paragraph (string) summarizing the candidate's suitability for the role, drawing conclusions from both strengths and weaknesses.
 
     Ensure the output is valid JSON, and do not include any additional text or markdown formatting (e.g., ```json) outside the JSON object itself."""
-
+    
     final_prompt = re.sub(r'\s+', ' ', prompt_template).strip()
     return final_prompt
 
-# Global variable to store the loaded Gemini model, for efficient reuse
-_gemini_model: Optional[genai.GenerativeModel] = None
+# Global variable to store the Deepseek client, for efficient reuse
+_deepseek_client: Optional[openai.OpenAI] = None
 
-def initialize_gemini_model(api_key: str, model_name: str = "gemini-pro") -> genai.GenerativeModel:
-    global _gemini_model
-    if _gemini_model is None:
+def initialize_deepseek_client(api_key: str, base_url: str = "https://api.deepseek.com/v1") -> openai.OpenAI:
+    """
+    Initializes and loads the Deepseek API client using OpenAI compatibility.
+    The client is initialized only once (singleton pattern).
+
+    Args:
+        api_key (str): Your Deepseek API key.
+        base_url (str): The base URL for the Deepseek API (default: https://api.deepseek.com/v1).
+
+    Returns:
+        openai.OpenAI: The initialized OpenAI-compatible Deepseek client.
+    """
+    global _deepseek_client
+    if _deepseek_client is None:
         try:
-            print(f"Initializing Google Gemini model: {model_name}...")
-            genai.configure(api_key=api_key)
-            _gemini_model = genai.GenerativeModel(model_name)
-            print(f"Gemini model '{model_name}' initialized.")
+            print(f"Initializing Deepseek client with base URL: {base_url}...")
+            _deepseek_client = openai.OpenAI(
+                api_key=api_key,
+                base_url=base_url,
+            )
+            print(f"Deepseek client initialized.")
         except Exception as e:
-            print(f"Error initializing Gemini model '{model_name}': {e}")
-            raise LLMEvaluationError(f"Failed to initialize Gemini model: {e}")
-    return _gemini_model
+            print(f"Error initializing Deepseek client: {e}")
+            raise LLMEvaluationError(f"Failed to initialize Deepseek client: {e}")
+    return _deepseek_client
 
 
-def call_llm_for_evaluation(prompt: str, api_key: str, model_name: str = "gemini-pro") -> Dict[str, Any]:
+def call_llm_for_evaluation(prompt: str, api_key: str, model_name: str = "deepseek-coder") -> Dict[str, Any]:
+    """
+    Sends the constructed prompt to the Deepseek LLM for evaluation and parses the JSON response.
+
+    Args:
+        prompt (str): The detailed prompt for the LLM.
+        api_key (str): Your Deepseek API key.
+        model_name (str): The name of the Deepseek model to use (e.g., "deepseek-coder", "deepseek-chat").
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the parsed evaluation results.
+
+    Raises:
+        LLMEvaluationError: If the LLM call fails, returns an invalid response,
+                            or the JSON cannot be parsed.
+    """
     if not api_key:
-        raise LLMEvaluationError("Gemini API key is not provided.")
+        raise LLMEvaluationError("Deepseek API key is not provided.")
     if not prompt:
         raise ValueError("Prompt cannot be empty.")
 
     try:
-        model = initialize_gemini_model(api_key, model_name)
+        client = initialize_deepseek_client(api_key) # Gets singleton
 
-        generation_config = {
-            "temperature": 0.5,
-            "max_output_tokens": 1000,
-            "response_mime_type": "application/json"
-        }
+        # Deepseek uses a messages array, similar to OpenAI's chat completions
+        messages = [
+            {"role": "user", "content": prompt}
+        ]
 
-        response = model.generate_content(prompt, generation_config=generation_config)
+        # Adjust model_name as per Deepseek's available models
+        # Common Deepseek models: "deepseek-coder", "deepseek-chat"
+        # For JSON mode, ensure the model explicitly supports it or rely on strong prompting.
+        # OpenAI client's `response_format` might work for Deepseek's API if they support it.
+        # However, for broader compatibility, we'll parse text.
+        
+        # The .env file can specify `DEEPSEEK_MODEL_NAME` to override default
+        model_to_use = os.getenv("DEEPSEEK_MODEL_NAME", model_name)
 
-        if not response.text:
-            raise LLMEvaluationError("Gemini LLM returned an empty response.")
+        completion = client.chat.completions.create(
+            model=model_to_use,
+            messages=messages,
+            temperature=0.5, # Lower for more deterministic output
+            # max_tokens=1000, # Max output tokens, Deepseek's API might have specific param name
+            response_format={"type": "json_object"} # Use OpenAI client's JSON mode
+        )
 
-        raw_text = response.text.strip()
+        response_content = completion.choices[0].message.content
+        if not response_content:
+            raise LLMEvaluationError("Deepseek LLM returned an empty response.")
+
+        # Clean up potential markdown formatting (e.g., ```json ... ```)
+        raw_text = response_content.strip()
         if raw_text.startswith("```json") and raw_text.endswith("```"):
             raw_text = raw_text[7:-3].strip()
         elif raw_text.startswith("```") and raw_text.endswith("```"):
@@ -87,14 +139,14 @@ def call_llm_for_evaluation(prompt: str, api_key: str, model_name: str = "gemini
 
         expected_keys = ["overall_score", "strengths", "weaknesses", "summary"]
         if not all(key in evaluation_results for key in expected_keys):
-            raise LLMEvaluationError(f"LLM response missing expected keys. Expected: {expected_keys}, Got: {evaluation_results.keys()}")
+            raise LLMEvaluationError(f"LLM response missing expected keys. Expected: {expected_keys}, Got: {evaluation_results.keys()}. Raw response: {raw_text}")
 
         return evaluation_results
 
     except json.JSONDecodeError as e:
         raise LLMEvaluationError(f"Failed to parse LLM response as JSON: {e}. Raw response: {raw_text}")
-    except GoogleAPIError as e: # <--- Make sure this is GoogleAPIError
-        raise LLMEvaluationError(f"Gemini API error during evaluation: {e}")
+    except openai.APIError as e: # <--- CHANGE: Catch OpenAI.APIError
+        raise LLMEvaluationError(f"Deepseek API error during evaluation: {e}")
     except Exception as e:
         raise LLMEvaluationError(f"An unexpected error occurred during LLM evaluation: {e}")
 
@@ -103,13 +155,16 @@ if __name__ == '__main__':
     from dotenv import load_dotenv
     load_dotenv()
 
-    print("--- Testing llm_evaluator functions locally with Gemini ---")
+    print("--- Testing llm_evaluator functions locally with Deepseek ---")
 
-    GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
+    # IMPORTANT: Set your DEEPSEEK_API_KEY in a .env file or as an environment variable
+    DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+    DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1") # Default base URL
+    DEEPSEEK_MODEL_NAME = os.getenv("DEEPSEEK_MODEL_NAME", "deepseek-coder") # Default model name
 
-    if not GEMINI_API_KEY:
-        print("ERROR: GOOGLE_API_KEY environment variable not set. Cannot run live LLM test.")
-        print("Please create a .env file in your project root with GOOGLE_API_KEY=YOUR_GEMINI_API_KEY")
+    if not DEEPSEEK_API_KEY:
+        print("ERROR: DEEPSEEK_API_KEY environment variable not set. Cannot run live LLM test.")
+        print("Please create a .env file in your project root with DEEPSEEK_API_KEY=YOUR_DEEPSEEK_API_KEY")
     else:
         sample_job_description = """
         We are seeking a highly motivated Senior Software Engineer with 5+ years of experience
@@ -129,8 +184,8 @@ if __name__ == '__main__':
             prompt = construct_evaluation_prompt(sample_job_description, sample_candidate_chunks)
             print(f"Prompt length: {len(prompt)} characters. First 500 chars:\n'{prompt[:500]}...'")
 
-            print("\n--- Calling Gemini LLM (Live API Call) ---")
-            evaluation_result = call_llm_for_evaluation(prompt, GEMINI_API_KEY)
+            print("\n--- Calling Deepseek LLM (Live API Call) ---")
+            evaluation_result = call_llm_for_evaluation(prompt, DEEPSEEK_API_KEY, DEEPSEEK_MODEL_NAME)
 
             print("\n--- LLM Evaluation Result ---")
             print(json.dumps(evaluation_result, indent=2))

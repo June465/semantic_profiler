@@ -8,17 +8,49 @@ services:
       MYSQL_ROOT_PASSWORD: Password
       MYSQL_DATABASE: semantic_profiler_db
       MYSQL_USER: user
-      MYSQL_PASSWORD: ouWE@e91!#
+      MYSQL_PASSWORD: ouWEe91
     ports:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
-      # - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql 
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql 
+    networks:
+      - app_network
+
+  backend: 
+    build:
+      context: ../  
+      dockerfile: docker/backend.Dockerfile 
+    container_name: fastapi_backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: mysql+pymysql://user:ouWEe91@db:3306/semantic_profiler_db
+      DEEPSEEK_API_KEY: ${sk-ea8d540609d2405f96fc3b8b7d431f74}
+      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1} 
+      DEEPSEEK_MODEL_NAME: ${DEEPSEEK_MODEL_NAME:-deepseek-coder}
+    depends_on:
+      - db
+    networks:
+      - app_network
+    volumes: 
+      - ./faiss_index_data:/app/faiss_data
+
+  frontend: 
+    image: nginx:alpine
+    container_name: static_frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ../frontend:/usr/share/nginx/html:ro 
+    depends_on:
+      - backend
     networks:
       - app_network
 
 volumes:
   db_data:
+  faiss_index_data: 
 
 networks:
   app_network:

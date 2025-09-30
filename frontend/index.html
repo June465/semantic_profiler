@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semantic Profiler</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        input, textarea, button { margin-bottom: 10px; display: block; width: 80%; max-width: 500px; padding: 8px; }
+        #results { margin-top: 20px; border: 1px solid #ccc; padding: 10px; white-space: pre-wrap; background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Candidate Profiling Tool</h1>
+
+    <section>
+        <h2>1. Upload Resumes</h2>
+        <input type="file" id="resumeFileInput" multiple accept=".pdf,.docx">
+        <button onclick="uploadResumes()">Upload Resumes</button>
+        <div id="uploadedResumeIds" style="margin-top: 10px;"></div>
+    </section>
+
+    <section style="margin-top: 30px;">
+        <h2>2. Evaluate Candidates</h2>
+        <textarea id="jobDescriptionInput" rows="10" placeholder="Paste job description here..."></textarea>
+        <button onclick="evaluateCandidates()">Evaluate Selected Resumes</button>
+    </section>
+
+    <section style="margin-top: 30px;">
+        <h2>3. Results</h2>
+        <button onclick="fetchLatestEvaluation()">Fetch Latest Evaluation (for demo)</button>
+        <div id="results">No evaluation results yet.</div>
+    </section>
+
+    <script src="app.js"></script>
+</body>
+</html>
