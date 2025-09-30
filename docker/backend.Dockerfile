@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir --default-timeout=900 \
     langchain \
     sentence-transformers \
     faiss-cpu \
-    google-generativeai \
+    openai \
     python-multipart \
     numpy
 
