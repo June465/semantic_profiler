@@ -1,0 +1,22 @@
+# In backend/requirements.txt
+
+# Core Application
+fastapi
+uvicorn[standard]
+python-dotenv
+python-multipart
+
+# Database
+SQLAlchemy
+pymysql
+
+# Resume Processing & AI
+pdfplumber
+python-docx
+langchain
+sentence-transformers
+faiss-cpu
+openai
+
+# Utilities
+numpy

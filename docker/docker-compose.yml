@@ -21,14 +21,15 @@ services:
     build:
       context: ../  
       dockerfile: docker/backend.Dockerfile 
+    env_file:
+      - ../.env
     container_name: fastapi_backend
     ports:
       - "8000:8000"
+    # REMOVE THE HARDCODED SECRETS,
+    # BUT KEEP THE DATABASE_URL AS IT REFERS TO ANOTHER SERVICE ('db')
     environment:
       DATABASE_URL: mysql+pymysql://user:ouWEe91@db:3306/semantic_profiler_db
-      DEEPSEEK_API_KEY: ${sk-ea8d540609d2405f96fc3b8b7d431f74}
-      DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1} 
-      DEEPSEEK_MODEL_NAME: ${DEEPSEEK_MODEL_NAME:-deepseek-coder}
     depends_on:
       - db
     networks:
