@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react'; 
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    width: '100%', // Make it responsive within the grid
+    width: '100%',
     maxWidth: '800px',
     padding: '2rem',
     backgroundColor: '#f9f9f9',
@@ -50,12 +50,39 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 const UploadPage = () => {
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+
+    if (event.target.files && event.target.files.length > 0) {
+      setResumeFile(event.target.files[0]);
+    }
+  };
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault(); 
+    
+    if (!resumeFile) {
+      alert('Please select a resume file.');
+      return;
+    }
+    
+    console.log('Submitting the following data:');
+    console.log('Resume File:', resumeFile);
+    console.log('Job Title:', jobTitle);
+    console.log('Job Description:', jobDescription);
+  };
+
+
   return (
     <div style={styles.container}>
       <h2>Upload and Evaluate</h2>
       <p>Submit a resume and job description to get a detailed AI-powered analysis.</p>
 
-      <form>
+      {/* --- 4. CONNECT FORM TO HANDLERS --- */}
+      <form onSubmit={handleSubmit}>
         <div style={styles.formGroup}>
           <label htmlFor="resume-file" style={styles.label}>
             1. Upload Resume (PDF or DOCX)
@@ -65,6 +92,7 @@ const UploadPage = () => {
             id="resume-file"
             style={styles.input}
             accept=".pdf,.docx"
+            onChange={handleFileChange} 
           />
         </div>
 
@@ -77,6 +105,8 @@ const UploadPage = () => {
             id="job-title"
             style={styles.input}
             placeholder="e.g., Senior Python Developer"
+            value={jobTitle} 
+            onChange={(e) => setJobTitle(e.target.value)} 
           />
         </div>
 
@@ -88,6 +118,8 @@ const UploadPage = () => {
             id="job-description"
             style={styles.textarea}
             placeholder="Paste the full job description here..."
+            value={jobDescription} 
+            onChange={(e) => setJobDescription(e.target.value)} 
           />
         </div>
 
