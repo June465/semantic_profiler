@@ -23,3 +23,7 @@ class EvaluationResultResponse(EvaluationResultBase):
     
     class Config:
         from_attributes = True
+
+class MassEvaluationResponse(BaseModel):
+    successful_evaluations: List[EvaluationResultResponse] = Field(..., description="A list of successfully completed evaluations.")
+    skipped_resume_ids: List[int] = Field(..., description="A list of resume IDs that were skipped due to lack of relevant information.")

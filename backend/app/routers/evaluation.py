@@ -6,7 +6,7 @@ from typing import List
 
 from backend.database.database import get_db
 from backend.services import evaluation_service
-# --- 1. CORRECT IMPORT ALIAS ---
+
 from backend.schemas import evaluation as schemas
 
 router = APIRouter(
@@ -14,31 +14,33 @@ router = APIRouter(
     tags=["Evaluations"],
 )
 
-# --- 2. RESPONSE MODEL USES THE CORRECT ALIAS ---
-@router.post("/", response_model=List[schemas.EvaluationResultResponse], status_code=status.HTTP_200_OK)
+@router.post("/", response_model=schemas.MassEvaluationResponse, status_code=status.HTTP_200_OK)
 async def create_evaluation(
     evaluation_input: schemas.EvaluationRequest, 
     db: Session = Depends(get_db)
 ):
+    """
+    Create a new evaluation for one or more resumes against a job description.
+    Returns successful evaluations and a list of any skipped resume IDs.
+    """
     try:
-        results = await evaluation_service.perform_evaluation(
+        successful_results, skipped_ids = await evaluation_service.perform_evaluation(
             db=db,
             job_description_text=evaluation_input.job_description,
             job_title=evaluation_input.job_title,
             resume_ids=evaluation_input.resume_ids
         )
-        if not results:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No relevant information found in the submitted resume to perform an evaluation against this job description."
-            )
-        return results
+        
+        return {
+            "successful_evaluations": successful_results,
+            "skipped_resume_ids": skipped_ids
+        }
+        
     except evaluation_service.EvaluationServiceError as e:
         raise HTTPException(status_code=500, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# --- 4. FIXES FOR THE GET ROUTES AS WELL ---
 @router.get("/{evaluation_id}", response_model=schemas.EvaluationResultResponse)
 async def get_single_evaluation_result(
     evaluation_id: int,

@@ -1,6 +1,6 @@
 import React from 'react';
 import UploadPage from './pages/UploadPage.tsx';
-import './App.css'; // We'll use this for some basic styling
+import './App.css';
 
 function App() {
   return (
@@ -12,7 +12,7 @@ function App() {
         <UploadPage />
       </main>
       <footer>
-        <p>&copy; 2024 Your Name</p>
+        <p>&copy; 2025 Gowri Ajith<br></br>- 23BCE1417, SCOPE, Computer Science and Engineering, VIT Chennai </p>
       </footer>
     </div>
   );

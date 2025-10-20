@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 import os
-from typing import List, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 from backend.database import models
 from backend.core import embedding_generator, vector_store, llm_evaluator
@@ -14,9 +14,9 @@ async def perform_evaluation(
     job_description_text: str,
     resume_ids: List[int],
     job_title: Optional[str] = None
-) -> List[models.EvaluationResult]:
+) -> Tuple[List[models.EvaluationResult], List[int]]:
     """
-    Performs LLM-powered evaluations for multiple candidates against a job description.
+    Performs LLM evaluations and returns both successful results and skipped resume IDs.
     """
     if not job_description_text or not resume_ids:
         raise ValueError("Job description and a list of resume IDs are required.")
@@ -30,6 +30,7 @@ async def perform_evaluation(
     job_description_embedding = embedding_generator.get_embeddings(job_description_text, embedding_model)
 
     evaluated_results: List[models.EvaluationResult] = []
+    skipped_ids: List[int] = []
 
     for resume_id in resume_ids:
         db_resume = db.query(models.Resume).filter(models.Resume.id == resume_id).first()
@@ -45,6 +46,7 @@ async def perform_evaluation(
             ]
             if not candidate_specific_chunks:
                 print(f"Warning: No relevant chunks for resume ID {resume_id}. Skipping.")
+                skipped_ids.append(resume_id)
                 continue
 
             llm_prompt = llm_evaluator.construct_evaluation_prompt(
@@ -83,7 +85,7 @@ async def perform_evaluation(
             db.rollback()
             raise EvaluationServiceError(f"Unexpected error for resume {resume_id}: {e}")
 
-    return evaluated_results
+    return evaluated_results, skipped_ids
 
 async def get_evaluation_results_by_id(db: Session, evaluation_id: int) -> Optional[models.EvaluationResult]:
     return db.query(models.EvaluationResult).filter(models.EvaluationResult.id == evaluation_id).first()

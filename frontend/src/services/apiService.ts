@@ -22,6 +22,11 @@ export interface EvaluationResult {
   evaluation_date: string;
 }
 
+export interface MassEvaluationResponse {
+  successful_evaluations: EvaluationResult[];
+  skipped_resume_ids: number[];
+}
+
 export const uploadResume = async (file: File): Promise<ResumeResponse> => {
   const formData = new FormData();
   formData.append('file', file);
@@ -33,16 +38,16 @@ export const uploadResume = async (file: File): Promise<ResumeResponse> => {
 };
 
 export const createEvaluation = async (
-  resumeIds: number[], 
+  resumeIds: number[],
   jobTitle: string,
   jobDescription: string
-): Promise<EvaluationResult[]> => {
+): Promise<MassEvaluationResponse> => {
   const payload = {
     job_title: jobTitle,
     job_description: jobDescription,
-    resume_ids: resumeIds, 
+    resume_ids: resumeIds,
   };
 
-  const response = await axios.post<EvaluationResult[]>(`${API_BASE_URL}/evaluations/`, payload);
+  const response = await axios.post<MassEvaluationResponse>(`${API_BASE_URL}/evaluations/`, payload);
   return response.data;
 };

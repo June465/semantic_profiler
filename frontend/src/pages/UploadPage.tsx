@@ -69,6 +69,7 @@ const UploadPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [evaluationResults, setEvaluationResults] = useState<EvaluationResult[]>([]);
+  const [skippedIds, setSkippedIds] = useState<number[]>([]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -78,7 +79,6 @@ const UploadPage = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
   event.preventDefault();
-  // Updated validation to check for multiple files
   if (!resumeFiles || resumeFiles.length === 0) {
     setError('Please select one or more resume files.');
     return;
@@ -90,17 +90,15 @@ const UploadPage = () => {
   
   setIsLoading(true);
   setError(null);
-  // Change evaluationResult state to hold an array of results
-  setEvaluationResults([]); // Assuming you've updated the state variable name
+  setEvaluationResults([]);
+  setSkippedIds([]);
 
   try {
     console.log(`Step 1: Uploading ${resumeFiles.length} resume(s)...`);
     
-    // Use Promise.all to upload all files in parallel for performance
     const uploadPromises = Array.from(resumeFiles).map(file => uploadResume(file));
     const uploadResponses = await Promise.all(uploadPromises);
     
-    // Collect all the new resume IDs
     const resumeIds = uploadResponses.map(response => response.id);
     console.log(`Step 2: All resumes uploaded. IDs:`, resumeIds);
 
@@ -111,21 +109,25 @@ const UploadPage = () => {
     console.log("Step 3: Creating evaluation for all resumes...");
     const evaluationResponse = await createEvaluation(resumeIds, jobTitle, jobDescription);
     console.log("Evaluation response received:", evaluationResponse);
-    
-    // Update state with the full list of results
-    setEvaluationResults(evaluationResponse);
+    setEvaluationResults(evaluationResponse.successful_evaluations);
+    setSkippedIds(evaluationResponse.skipped_resume_ids);
 
   } catch (err: any) {
-    // ... (your existing robust error handling is fine) ...
+    console.error("--- X. ENTERING CATCH BLOCK ---", err);
+    let errorMessage = 'An error occurred. Check the console for details.';
+    if (err.message) { errorMessage = err.message; }
+    setError(errorMessage);
   } finally {
+     console.log("--- Y. ENTERING FINALLY BLOCK ---");
     setIsLoading(false);
+    console.log("--- Z. isLoading set to FALSE ---");
   }
 };
 
   return (
     <div style={styles.container}>
       <h2>Upload and Evaluate</h2>
-      <p>Submit a resume and job description to get a detailed AI-powered analysis.</p>
+      <p>Submit resume(s) and a job description to get a detailed AI-powered analysis.</p>
       <form onSubmit={handleSubmit}>
         <div style={styles.formGroup}>
             <label htmlFor="resume-file" style={styles.label}>
