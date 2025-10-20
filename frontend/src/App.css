@@ -25,12 +25,14 @@ body {
 }
 
 .app-container main {
-  /* The main area will grow to take up available vertical space */
   flex-grow: 1;
-  
-  /* And we use grid to perfectly center its single child (the form) */
-  display: grid;
-  place-items: center;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+  box-sizing: border-box;
 }
 
 .app-container footer {

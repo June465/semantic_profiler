@@ -1,47 +1,45 @@
+# In backend/app/routers/evaluation.py
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
 from backend.database.database import get_db
 from backend.services import evaluation_service
-from backend.schemas import evaluation as evaluation_schemas # Use alias
-from backend.database import models
+# --- 1. CORRECT IMPORT ALIAS ---
+from backend.schemas import evaluation as schemas
 
-# Create an API router for evaluation-related endpoints
 router = APIRouter(
     prefix="/evaluations",
     tags=["Evaluations"],
 )
 
-@router.post("/", response_model=List[evaluation_schemas.EvaluationResultResponse], status_code=status.HTTP_201_CREATED)
+# --- 2. RESPONSE MODEL USES THE CORRECT ALIAS ---
+@router.post("/", response_model=List[schemas.EvaluationResultResponse], status_code=status.HTTP_200_OK)
 async def create_evaluation(
-    request: evaluation_schemas.EvaluationRequest,
+    evaluation_input: schemas.EvaluationRequest, 
     db: Session = Depends(get_db)
 ):
-    """
-    Initiates an LLM-powered evaluation of multiple resumes against a given job description.
-    """
     try:
-        evaluation_results = await evaluation_service.perform_evaluation(
-            db,
-            request.job_description,
-            request.resume_ids,
-            request.job_title
+        results = await evaluation_service.perform_evaluation(
+            db=db,
+            job_description_text=evaluation_input.job_description,
+            job_title=evaluation_input.job_title,
+            resume_ids=evaluation_input.resume_ids
         )
-        if not evaluation_results:
+        if not results:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="No evaluations could be performed for the given resumes/job description (e.g., resumes not found or no relevant chunks)."
+                detail="No relevant information found in the submitted resume to perform an evaluation against this job description."
             )
-        return evaluation_results
+        return results
     except evaluation_service.EvaluationServiceError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"An unexpected error occurred: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/{evaluation_id}", response_model=evaluation_schemas.EvaluationResultResponse)
+# --- 4. FIXES FOR THE GET ROUTES AS WELL ---
+@router.get("/{evaluation_id}", response_model=schemas.EvaluationResultResponse)
 async def get_single_evaluation_result(
     evaluation_id: int,
     db: Session = Depends(get_db)
@@ -54,7 +52,7 @@ async def get_single_evaluation_result(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evaluation result not found.")
     return evaluation
 
-@router.get("/", response_model=List[evaluation_schemas.EvaluationResultResponse])
+@router.get("/", response_model=List[schemas.EvaluationResultResponse])
 async def get_all_evaluation_results(
     db: Session = Depends(get_db)
 ):
