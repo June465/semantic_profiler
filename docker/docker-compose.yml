@@ -1,8 +1,9 @@
-version: '3.8'
+# In docker/docker-compose.yml
 
+# The 'version' tag is obsolete, so we can remove it.
 services:
   db:
-    image: mysql:8.0 
+    image: mysql:8.0
     container_name: mysql_db
     environment:
       MYSQL_ROOT_PASSWORD: Password
@@ -13,45 +14,57 @@ services:
       - "3306:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql 
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app_network
+    # ADD THIS HEALTHCHECK BLOCK:
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pPassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  backend: 
+  backend:
     build:
-      context: ../  
-      dockerfile: docker/backend.Dockerfile 
-    env_file:
-      - ../.env
+      context: ../
+      dockerfile: docker/backend.Dockerfile
     container_name: fastapi_backend
     ports:
       - "8000:8000"
-    # REMOVE THE HARDCODED SECRETS,
-    # BUT KEEP THE DATABASE_URL AS IT REFERS TO ANOTHER SERVICE ('db')
+    env_file:
+      - ../.env
     environment:
       DATABASE_URL: mysql+pymysql://user:ouWEe91@db:3306/semantic_profiler_db
+    # MODIFY THE depends_on BLOCK:
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - app_network
-    volumes: 
+    volumes:
       - ./faiss_index_data:/app/faiss_data
+      # Add this volume to enable hot-reloading for code changes
+      - ../backend:/app/backend
+    # Add a restart policy for extra resilience
+    restart: unless-stopped
 
-  frontend: 
+  frontend:
     image: nginx:alpine
     container_name: static_frontend
     ports:
       - "3000:80"
     volumes:
-      - ../frontend:/usr/share/nginx/html:ro 
+      - ../frontend:/usr/share/nginx/html:ro
     depends_on:
       - backend
     networks:
       - app_network
+    restart: unless-stopped
 
 volumes:
   db_data:
-  faiss_index_data: 
+  faiss_index_data:
 
 networks:
   app_network:
