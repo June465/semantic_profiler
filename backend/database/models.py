@@ -57,10 +57,11 @@ class EvaluationResult(Base):
     id: Mapped[int] = Column(Integer, primary_key=True, index=True)
     resume_id: Mapped[int] = Column(Integer, ForeignKey("resumes.id"), nullable=False)
     job_description_id: Mapped[int] = Column(Integer, ForeignKey("job_descriptions.id"), nullable=False)
-
+    candidate_name: Mapped[str] = Column(String(255), nullable=False, server_default="Unknown Candidate")
+    
     overall_score: Mapped[float] = Column(Float, nullable=False)
-    strengths: Mapped[list] = Column(JSON, nullable=False)      # <--- CORRECTED
-    weaknesses: Mapped[list] = Column(JSON, nullable=False)     # <--- CORRECTED
+    strengths: Mapped[list] = Column(JSON, nullable=False)    
+    weaknesses: Mapped[list] = Column(JSON, nullable=False)   
     summary: Mapped[str] = Column(Text, nullable=False)
     evaluation_date: Mapped[datetime] = Column(DateTime, default=datetime.utcnow, nullable=False)
 

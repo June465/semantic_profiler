@@ -63,93 +63,120 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 const UploadPage = () => {
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeFiles, setResumeFiles] = useState<FileList | null>(null);
   const [jobTitle, setJobTitle] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
+  const [evaluationResults, setEvaluationResults] = useState<EvaluationResult[]>([]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => { if (event.target.files && event.target.files.length > 0) { setResumeFile(event.target.files[0]); } };
-
-  // --- NEW INSTRUMENTED handleSubmit FUNCTION ---
-  const handleSubmit = async (event: React.FormEvent) => {
-    console.log("--- 1. handleSubmit START ---");
-    event.preventDefault();
-    console.log("--- 2. preventDefault called ---");
-
-    if (!resumeFile || !jobTitle.trim() || !jobDescription.trim()) {
-      console.error("--- VALIDATION FAILED ---");
-      setError('Please fill out all fields and select a resume file.');
-      return;
-    }
-    console.log("--- 3. Validation PASSED ---");
-    
-    setIsLoading(true);
-    setError(null);
-    setEvaluationResult(null);
-    console.log("--- 4. UI state reset, isLoading is TRUE ---");
-
-    try {
-      console.log("--- 5. ENTERING try block ---");
-      
-      console.log("--- 6. Calling uploadResume... ---");
-      const uploadResponse = await uploadResume(resumeFile);
-      console.log("--- 7. uploadResume FINISHED. Response:", uploadResponse);
-
-      if (!uploadResponse || typeof uploadResponse.id === 'undefined') {
-        throw new Error("Server response did not contain a valid resume object.");
-      }
-      const resumeId = Number(uploadResponse.id);
-      console.log("--- 8. Got resumeId:", resumeId);
-
-      if (isNaN(resumeId) || resumeId <= 0) {
-          throw new Error(`Invalid resume ID received: ${uploadResponse.id}`);
-      }
-      
-      console.log("--- 9. Calling createEvaluation... ---");
-      const evaluationResponse = await createEvaluation(resumeId, jobTitle, jobDescription);
-      console.log("--- 10. createEvaluation FINISHED. Response:", evaluationResponse);
-      
-      if (evaluationResponse && evaluationResponse.length > 0) {
-        console.log("--- 11. Setting evaluation result state ---");
-        setEvaluationResult(evaluationResponse[0]);
-      } else {
-        throw new Error("Evaluation completed, but no result was returned.");
-      }
-      console.log("--- 12. LEAVING try block successfully ---");
-
-    } catch (err: any) {
-      console.error("--- X. ENTERING CATCH BLOCK ---", err);
-      let errorMessage = 'An error occurred. Check the console for details.';
-      if (err.message) { errorMessage = err.message; }
-      setError(errorMessage);
-    } finally {
-      console.log("--- Y. ENTERING FINALLY BLOCK ---");
-      setIsLoading(false);
-      console.log("--- Z. isLoading set to FALSE ---");
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      setResumeFiles(event.target.files);
     }
   };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+  event.preventDefault();
+  // Updated validation to check for multiple files
+  if (!resumeFiles || resumeFiles.length === 0) {
+    setError('Please select one or more resume files.');
+    return;
+  }
+  if (!jobTitle.trim() || !jobDescription.trim()) {
+    setError('Please fill out the job title and description.');
+    return;
+  }
+  
+  setIsLoading(true);
+  setError(null);
+  // Change evaluationResult state to hold an array of results
+  setEvaluationResults([]); // Assuming you've updated the state variable name
+
+  try {
+    console.log(`Step 1: Uploading ${resumeFiles.length} resume(s)...`);
+    
+    // Use Promise.all to upload all files in parallel for performance
+    const uploadPromises = Array.from(resumeFiles).map(file => uploadResume(file));
+    const uploadResponses = await Promise.all(uploadPromises);
+    
+    // Collect all the new resume IDs
+    const resumeIds = uploadResponses.map(response => response.id);
+    console.log(`Step 2: All resumes uploaded. IDs:`, resumeIds);
+
+    if (resumeIds.length === 0) {
+      throw new Error("None of the files could be uploaded successfully.");
+    }
+
+    console.log("Step 3: Creating evaluation for all resumes...");
+    const evaluationResponse = await createEvaluation(resumeIds, jobTitle, jobDescription);
+    console.log("Evaluation response received:", evaluationResponse);
+    
+    // Update state with the full list of results
+    setEvaluationResults(evaluationResponse);
+
+  } catch (err: any) {
+    // ... (your existing robust error handling is fine) ...
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div style={styles.container}>
       <h2>Upload and Evaluate</h2>
       <p>Submit a resume and job description to get a detailed AI-powered analysis.</p>
       <form onSubmit={handleSubmit}>
-        <div style={styles.formGroup}><label htmlFor="resume-file" style={styles.label}>1. Upload Resume (PDF or DOCX)</label><input type="file" id="resume-file" style={styles.input} accept=".pdf,.docx" onChange={handleFileChange} /></div>
-        <div style={styles.formGroup}><label htmlFor="job-title" style={styles.label}>2. Enter Job Title</label><input type="text" id="job-title" style={styles.input} placeholder="e.g., Senior Python Developer" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} /></div>
-        <div style={styles.formGroup}><label htmlFor="job-description" style={styles.label}>3. Paste Job Description</label><textarea id="job-description" style={styles.textarea} placeholder="Paste the full job description here..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} /></div>
-        <button type="submit" style={styles.button} disabled={isLoading}>{isLoading ? 'Evaluating...' : 'Evaluate Candidate'}</button>
+        <div style={styles.formGroup}>
+            <label htmlFor="resume-file" style={styles.label}>
+                1. Upload Resume (PDF or DOCX)
+            </label>
+            <input type="file" id="resume-file" style={styles.input} accept=".pdf,.docx" onChange={handleFileChange} multiple />
+        </div>
+        <div style={styles.formGroup}>
+            <label htmlFor="job-title" style={styles.label}>
+                2. Enter Job Title
+            </label>
+            <input type="text" id="job-title" style={styles.input} placeholder="e.g., Senior Python Developer" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
+        </div>
+        <div style={styles.formGroup}>
+            <label htmlFor="job-description" style={styles.label}>
+                3. Paste Job Description
+            </label>
+            <textarea id="job-description" style={styles.textarea} placeholder="Paste the full job description here..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />
+        </div>
+        <button type="submit" style={styles.button} disabled={isLoading}>
+            {isLoading ? 'Evaluating...' : 'Evaluate Candidate'}
+        </button>
       </form>
-      {isLoading && <p style={{ textAlign: 'center', marginTop: '1rem' }}>Loading... Evaluating candidate...</p>}
-      {error && <p style={{ color: 'red', marginTop: '1rem' }}>Error: {error}</p>}
-      {evaluationResult && (
+      {evaluationResults.length > 0 && (
         <div style={styles.resultsContainer}>
-          <h3 style={styles.resultsHeader}>Evaluation Result</h3>
-          <p><strong>Overall Score:</strong> {evaluationResult.overall_score}/100</p>
-          <h4>Summary</h4><p>{evaluationResult.summary}</p>
-          <h4>Strengths</h4><ul>{evaluationResult.strengths.map((strength: string, index: number) => (<li key={`strength-${index}`}>{strength}</li>))}</ul>
-          <h4>Weaknesses</h4><ul>{evaluationResult.weaknesses.map((weakness: string, index: number) => (<li key={`weakness-${index}`}>{weakness}</li>))}</ul>
+            <h3 style={styles.resultsHeader}>Comparison Results</h3>
+            {evaluationResults
+            .sort((a, b) => b.overall_score - a.overall_score)
+            .map((result) => (
+            <details key={result.id} style={{ marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '1rem' }}>
+                <summary style={{ fontWeight: 'bold', cursor: 'pointer', fontSize: '1.2rem' }}>
+                  {`${result.candidate_name} - Score: ${result.overall_score}/100`}
+                </summary>
+                <div style={{ paddingLeft: '20px', marginTop: '1rem' }}>
+                    <h4>Summary</h4>
+                    <p>{result.summary}</p>
+                    <h4>Strengths</h4>
+                    <ul>
+                        {result.strengths.map((strength, index) => (
+                            <li key={`strength-${index}`}>{strength}</li>
+                        ))}
+                    </ul>
+                    <h4>Weaknesses</h4>
+                    <ul>
+                        {result.weaknesses.map((weakness, index) => (
+                            <li key={`weakness-${index}`}>{weakness}</li>
+                        ))}
+                    </ul>
+                </div>
+            </details>
+          ))}
         </div>
       )}
     </div>

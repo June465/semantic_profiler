@@ -14,6 +14,7 @@ export interface EvaluationResult {
   id: number;
   resume_id: number;
   job_description_id: number;
+  candidate_name: string;
   overall_score: number;
   strengths: string[];
   weaknesses: string[];
@@ -32,14 +33,14 @@ export const uploadResume = async (file: File): Promise<ResumeResponse> => {
 };
 
 export const createEvaluation = async (
-  resumeId: number,
+  resumeIds: number[], 
   jobTitle: string,
   jobDescription: string
 ): Promise<EvaluationResult[]> => {
   const payload = {
     job_title: jobTitle,
     job_description: jobDescription,
-    resume_ids: [resumeId],
+    resume_ids: resumeIds, 
   };
 
   const response = await axios.post<EvaluationResult[]>(`${API_BASE_URL}/evaluations/`, payload);

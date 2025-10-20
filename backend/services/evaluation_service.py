@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
-
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
 
 from backend.database import models
 from backend.core import embedding_generator, vector_store, llm_evaluator
@@ -35,7 +34,7 @@ async def perform_evaluation(
     for resume_id in resume_ids:
         db_resume = db.query(models.Resume).filter(models.Resume.id == resume_id).first()
         if not db_resume:
-            print(f"Warning: Resume with ID {resume_id} not found. Skipping evaluation.")
+            print(f"Warning: Resume with ID {resume_id} not found. Skipping.")
             continue
 
         try:
@@ -44,9 +43,8 @@ async def perform_evaluation(
                 m['chunk_text'] for m in relevant_chunks_metadata
                 if m.get('resume_id') == resume_id
             ]
-
             if not candidate_specific_chunks:
-                print(f"Warning: No relevant chunks found in FAISS for resume ID {resume_id}. Skipping LLM evaluation.")
+                print(f"Warning: No relevant chunks for resume ID {resume_id}. Skipping.")
                 continue
 
             llm_prompt = llm_evaluator.construct_evaluation_prompt(
@@ -55,7 +53,8 @@ async def perform_evaluation(
 
             deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
             if not deepseek_api_key:
-                raise EvaluationServiceError("DEEPSEEK_API_KEY is not set for LLM evaluation.")
+                raise EvaluationServiceError("DEEPSEEK_API_KEY is not set.")
+            
             deepseek_model_name = os.getenv("DEEPSEEK_MODEL_NAME", "deepseek-coder")
 
             evaluation_output = llm_evaluator.call_llm_for_evaluation(
@@ -65,6 +64,7 @@ async def perform_evaluation(
             db_evaluation = models.EvaluationResult(
                 resume_id=db_resume.id,
                 job_description_id=db_job_description.id,
+                candidate_name=evaluation_output.get("candidate_name", "Unknown Candidate"),
                 overall_score=evaluation_output.get("overall_score"),
                 strengths=evaluation_output.get("strengths", []),  
                 weaknesses=evaluation_output.get("weaknesses", []), 
@@ -76,31 +76,17 @@ async def perform_evaluation(
             db.refresh(db_evaluation)
             evaluated_results.append(db_evaluation)
 
-        except (
-            llm_evaluator.LLMEvaluationError,
-            embedding_generator.EmbeddingError, # Assuming you have a custom error
-            vector_store.VectorStoreError
-        ) as e:
+        except (llm_evaluator.LLMEvaluationError, vector_store.VectorStoreError) as e:
             db.rollback()
             raise EvaluationServiceError(f"Evaluation failed for resume {resume_id}: {e}")
         except Exception as e:
             db.rollback()
-            raise EvaluationServiceError(f"An unexpected error occurred for resume {resume_id}: {e}")
+            raise EvaluationServiceError(f"Unexpected error for resume {resume_id}: {e}")
 
     return evaluated_results
 
-
 async def get_evaluation_results_by_id(db: Session, evaluation_id: int) -> Optional[models.EvaluationResult]:
-    """
-    Retrieves a specific evaluation result by its ID.
-    SQLAlchemy's JSON type handles deserialization automatically.
-    """
     return db.query(models.EvaluationResult).filter(models.EvaluationResult.id == evaluation_id).first()
 
-
 async def get_all_evaluations(db: Session) -> List[models.EvaluationResult]:
-    """
-    Retrieves all evaluation results.
-    SQLAlchemy's JSON type handles deserialization automatically.
-    """
     return db.query(models.EvaluationResult).all()
