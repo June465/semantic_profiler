@@ -1,13 +1,16 @@
+import os
+from fastapi.responses import FileResponse
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from backend.database.database import get_db
 from backend.services import resume_service
-from backend.schemas import resume as resume_schemas # Use alias to avoid name conflict
+from backend.schemas import resume as resume_schemas 
 from backend.database import models
 
-# Create an API router for resume-related endpoints
+RESUME_UPLOAD_DIR = "/app/uploaded_resumes"
+
 router = APIRouter(
     prefix="/resumes",
     tags=["Resumes"],
@@ -55,6 +58,18 @@ async def get_all_resumes(
     """
     Retrieves a list of all uploaded resumes.
     """
-    # For now, just return all resumes. For a real app, you'd add pagination.
     resumes = db.query(models.Resume).all()
     return resumes
+
+@router.get("/{resume_id}/file", response_class=FileResponse)
+async def get_resume_file(resume_id: int, db: Session = Depends(get_db)):
+    db_resume = db.query(models.Resume).filter(models.Resume.id == resume_id).first()
+    if not db_resume:
+        raise HTTPException(status_code=404, detail="Resume not found in database.")
+
+    file_path = os.path.join(RESUME_UPLOAD_DIR, db_resume.filename)
+    
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail=f"File not found on disk at path: {file_path}")
+        
+    return FileResponse(path=file_path, filename=db_resume.filename)

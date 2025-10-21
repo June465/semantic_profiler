@@ -1,5 +1,8 @@
 import React from 'react';
-import UploadPage from './pages/UploadPage.tsx';
+import { Routes, Route, Link } from 'react-router-dom';
+import UploadPage from './pages/UploadPage';
+import DashboardPage from './pages/DashboardPage';
+import EvaluationDetailPage from './pages/EvaluationDetailPage';
 import './App.css';
 
 function App() {
@@ -7,12 +10,22 @@ function App() {
     <div className="app-container">
       <header>
         <h1>Semantic Profiler</h1>
+        <nav style={{ marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+          <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>Evaluate</Link>
+          <Link to="/dashboard" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</Link>
+        </nav>
       </header>
       <main>
-        <UploadPage />
+        <Routes>
+          <Route path="/" element={<UploadPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/" element={<UploadPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/evaluations/:evaluationId" element={<EvaluationDetailPage />} />
+        </Routes>
       </main>
       <footer>
-        <p>&copy; 2025 Gowri Ajith<br></br>- 23BCE1417, SCOPE, Computer Science and Engineering, VIT Chennai </p>
+        <p>&copy; 2025 Gowri Ajith<br></br>-23BCE1417, SCOPE, Computer Science and Engineering, VIT Chennai</p>
       </footer>
     </div>
   );

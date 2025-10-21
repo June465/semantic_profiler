@@ -51,3 +51,13 @@ export const createEvaluation = async (
   const response = await axios.post<MassEvaluationResponse>(`${API_BASE_URL}/evaluations/`, payload);
   return response.data;
 };
+
+export const getAllEvaluations = async (): Promise<EvaluationResult[]> => {
+  const response = await axios.get<EvaluationResult[]>(`${API_BASE_URL}/evaluations/`);
+  return response.data;
+};
+
+export const getEvaluationById = async (id: number): Promise<EvaluationResult> => {
+  const response = await axios.get<EvaluationResult>(`${API_BASE_URL}/evaluations/${id}`);
+  return response.data;
+};

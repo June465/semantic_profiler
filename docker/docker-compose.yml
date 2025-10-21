@@ -1,6 +1,3 @@
-# In docker/docker-compose.yml
-
-# The 'version' tag is obsolete, so we can remove it.
 services:
   db:
     image: mysql:8.0
@@ -17,7 +14,6 @@ services:
       - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - app_network
-    # ADD THIS HEALTHCHECK BLOCK:
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pPassword"]
       interval: 10s
@@ -36,7 +32,6 @@ services:
       - ../.env
     environment:
       DATABASE_URL: mysql+pymysql://user:ouWEe91@db:3306/semantic_profiler_db
-    # MODIFY THE depends_on BLOCK:
     depends_on:
       db:
         condition: service_healthy
@@ -44,9 +39,8 @@ services:
       - app_network
     volumes:
       - ./faiss_index_data:/app/faiss_data
-      # Add this volume to enable hot-reloading for code changes
-      - ../backend:/app/backend
-    # Add a restart policy for extra resilience
+      - ../backend:/app/fastapi_backend
+      - ../uploaded_resumes:/app/uploaded_resumes
     restart: unless-stopped
 
   frontend:
