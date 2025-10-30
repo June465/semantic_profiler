@@ -9,7 +9,6 @@ export interface ResumeResponse {
   upload_date: string;
 }
 
-// _NEW_: Define the ScoreBreakdown type for reusability.
 export type ScoreBreakdown = { [key: string]: number };
 
 export interface EvaluationResult {
@@ -22,8 +21,10 @@ export interface EvaluationResult {
   weaknesses: string[];
   summary: string;
   evaluation_date: string;
-  // _NEW_: Add the score_breakdown property.
-  score_breakdown: ScoreBreakdown | null; 
+  score_breakdown: ScoreBreakdown | null;
+  anonymized_score: number | null;
+  score_discrepancy: number | null;
+  bias_flag: boolean;
 }
 
 export interface MassEvaluationResponse {

@@ -14,7 +14,6 @@ class EvaluationResultBase(BaseModel):
     strengths: List[str]
     weaknesses: List[str]
     summary: str
-
     score_breakdown: Optional[ScoreBreakdown] = Field(None, description="Detailed breakdown of scores by category.")
 
 class EvaluationResultResponse(EvaluationResultBase):
@@ -22,8 +21,11 @@ class EvaluationResultResponse(EvaluationResultBase):
     resume_id: int
     job_description_id: int
     evaluation_date: datetime
-
     candidate_name: str = Field(..., description="The candidate's name as extracted by the AI.")
+    
+    anonymized_score: Optional[float] = Field(None, description="Score from the anonymized evaluation.")
+    score_discrepancy: Optional[float] = Field(None, description="Absolute difference between original and anonymized scores.")
+    bias_flag: bool = Field(False, description="Flag indicating if the score discrepancy exceeds a set threshold.")
     
     class Config:
         from_attributes = True

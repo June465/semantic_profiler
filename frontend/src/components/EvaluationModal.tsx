@@ -72,6 +72,31 @@ const closeButtonStyle: React.CSSProperties = {
   zIndex: 10,         
 };
 
+const BiasCheckDisplay = ({ evaluation }: { evaluation: EvaluationResult }) => {
+  if (evaluation.anonymized_score === null) {
+    return null; 
+  }
+
+  const discrepancyStyle: React.CSSProperties = {
+    color: evaluation.bias_flag ? '#dc3545' : '#28a745',
+    fontWeight: 'bold',
+  };
+
+  return (
+    <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '1rem', marginTop: '1.5rem', backgroundColor: '#f9f9f9' }}>
+      <h4>Bias Check Analysis</h4>
+      {evaluation.bias_flag && (
+         <p style={{ color: '#dc3545', fontWeight: 'bold' }}>
+           ⚠️ Warning: A significant score discrepancy was detected after removing personal information. This may indicate potential bias in the evaluation.
+         </p>
+      )}
+      <p><strong>Original Score:</strong> {evaluation.overall_score}</p>
+      <p><strong>Anonymized Score:</strong> {evaluation.anonymized_score}</p>
+      <p><strong>Score Discrepancy:</strong> <span style={discrepancyStyle}>{evaluation.score_discrepancy?.toFixed(2)}</span> points</p>
+    </div>
+  );
+};
+
 const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
   const resumeDownloadUrl = `${API_BASE_URL}/resumes/${evaluation.resume_id}/file`;
 
@@ -92,6 +117,8 @@ const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
         <h2>Evaluation for {evaluation.candidate_name}</h2>
         <hr />
         <p><strong>Overall Score:</strong> {evaluation.overall_score}/100</p>
+        
+        <BiasCheckDisplay evaluation={evaluation} />
         
         {evaluation.score_breakdown && Object.keys(evaluation.score_breakdown).length > 0 && (
           <ScoreBreakdownChart scores={evaluation.score_breakdown} />

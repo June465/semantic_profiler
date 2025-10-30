@@ -1,11 +1,17 @@
 import React from 'react';
 import { type EvaluationResult } from '../services/apiService';
-import styles from './ResultsDisplay.module.css'; 
+import styles from './ResultsDisplay.module.css';
 
 interface ResultsDisplayProps {
   results: EvaluationResult[];
   skippedIds: number[];
 }
+
+const BiasWarningIcon = () => (
+  <span className={styles.warningIcon} title="Potential bias detected: Score changed significantly after anonymizing resume details.">
+    ⚠️
+  </span>
+);
 
 const ResultsDisplay = ({ results, skippedIds }: ResultsDisplayProps) => {
   const showResults = results.length > 0;
@@ -33,7 +39,10 @@ const ResultsDisplay = ({ results, skippedIds }: ResultsDisplayProps) => {
             .map((result) => (
               <details key={result.id} className={styles.details}>
                 <summary className={styles.summary}>
-                  {`${result.candidate_name} - Score: ${result.overall_score}/100`}
+                  <span>
+                    {result.bias_flag && <BiasWarningIcon />}
+                    {`${result.candidate_name} - Score: ${result.overall_score}/100`}
+                  </span>
                 </summary>
                 <div className={styles.detailsContent}>
                   <h4>Summary</h4><p>{result.summary}</p>

@@ -3,11 +3,14 @@ import os
 from typing import List, Dict, Any, Optional, Tuple
 
 from backend.database import models
-from backend.core import embedding_generator, vector_store, llm_evaluator
+from backend.core import embedding_generator, vector_store, llm_evaluator, bias_module
+
+BIAS_DISCREPANCY_THRESHOLD = 10.0
 
 class EvaluationServiceError(Exception):
     """Custom exception for evaluation service failures."""
     pass
+
 
 async def perform_evaluation(
     db: Session,
@@ -60,20 +63,39 @@ async def perform_evaluation(
             
             deepseek_model_name = os.getenv("DEEPSEEK_MODEL_NAME", "deepseek-coder")
 
+            llm_prompt = llm_evaluator.construct_evaluation_prompt(job_description_text, candidate_specific_chunks)
             evaluation_output = llm_evaluator.call_llm_for_evaluation(
                 llm_prompt, deepseek_api_key, model_name=deepseek_model_name
             )
 
-            # _MODIFIED_: Add the score_breakdown field when creating the DB record.
+            anonymized_chunks = bias_module.anonymize_chunks(candidate_specific_chunks)
+            anonymized_llm_prompt = llm_evaluator.construct_evaluation_prompt(job_description_text, anonymized_chunks)
+            anonymized_output = llm_evaluator.call_llm_for_evaluation(
+                anonymized_llm_prompt, deepseek_api_key, model_name=deepseek_model_name
+            )
+            
+            original_score = evaluation_output.get("overall_score")
+            anonymized_score = anonymized_output.get("overall_score")
+
+            score_discrepancy = None
+            bias_flag = False
+            if original_score is not None and anonymized_score is not None:
+                score_discrepancy = abs(original_score - anonymized_score)
+                if score_discrepancy > BIAS_DISCREPANCY_THRESHOLD:
+                    bias_flag = True
+
             db_evaluation = models.EvaluationResult(
                 resume_id=db_resume.id,
                 job_description_id=db_job_description.id,
                 candidate_name=evaluation_output.get("candidate_name", "Unknown Candidate"),
-                overall_score=evaluation_output.get("overall_score"),
+                overall_score=original_score,
                 strengths=evaluation_output.get("strengths", []),  
                 weaknesses=evaluation_output.get("weaknesses", []), 
                 summary=evaluation_output.get("summary"),
-                score_breakdown=evaluation_output.get("score_breakdown", {}) # _NEW_
+                score_breakdown=evaluation_output.get("score_breakdown", {}),
+                anonymized_score=anonymized_score,
+                score_discrepancy=score_discrepancy,
+                bias_flag=bias_flag
             )
             
             db.add(db_evaluation)

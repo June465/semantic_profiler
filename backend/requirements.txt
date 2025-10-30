@@ -17,6 +17,7 @@ langchain
 sentence-transformers
 faiss-cpu
 openai
+spacy==3.7.2
 
 # Utilities
 numpy

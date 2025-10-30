@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float, Boolean
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship, Mapped
@@ -59,9 +59,11 @@ class EvaluationResult(Base):
     strengths: Mapped[list] = Column(JSON, nullable=False)    
     weaknesses: Mapped[list] = Column(JSON, nullable=False)   
     summary: Mapped[str] = Column(Text, nullable=False)
+    score_breakdown: Mapped[dict] = Column(JSON, nullable=True)
     
-    # _NEW_: Add a column to store the detailed score breakdown as a JSON object.
-    score_breakdown: Mapped[dict] = Column(JSON, nullable=True) # Use nullable=True for backward compatibility
+    anonymized_score: Mapped[Optional[float]] = Column(Float, nullable=True)
+    score_discrepancy: Mapped[Optional[float]] = Column(Float, nullable=True)
+    bias_flag: Mapped[Optional[bool]] = Column(Boolean, nullable=True, default=False)
     
     evaluation_date: Mapped[datetime] = Column(DateTime, default=datetime.utcnow, nullable=False)
 

@@ -60,3 +60,10 @@
     padding-left: 20px;
     margin-top: 1rem;
 }
+
+.warningIcon {
+  cursor: help;
+  margin-right: 8px;
+  font-size: 1.1rem;
+  vertical-align: middle;
+}
