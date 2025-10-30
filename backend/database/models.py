@@ -1,14 +1,10 @@
-# In backend/database/models.py
-
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float
-from sqlalchemy.dialects.mysql import JSON  # <--- IMPORT THIS
-from sqlalchemy.orm import declarative_base # <-- Use this import for newer SQLAlchemy
+from sqlalchemy.dialects.mysql import JSON
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship, Mapped
 from datetime import datetime
 from typing import List, Optional
 
-# Base = declarative_base() <-- This is the older way
-# Use the new way to be consistent with Mapped
 from sqlalchemy.orm import DeclarativeBase
 class Base(DeclarativeBase):
     pass
@@ -63,6 +59,10 @@ class EvaluationResult(Base):
     strengths: Mapped[list] = Column(JSON, nullable=False)    
     weaknesses: Mapped[list] = Column(JSON, nullable=False)   
     summary: Mapped[str] = Column(Text, nullable=False)
+    
+    # _NEW_: Add a column to store the detailed score breakdown as a JSON object.
+    score_breakdown: Mapped[dict] = Column(JSON, nullable=True) # Use nullable=True for backward compatibility
+    
     evaluation_date: Mapped[datetime] = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     resume: Mapped["Resume"] = relationship("Resume", back_populates="evaluation_results")

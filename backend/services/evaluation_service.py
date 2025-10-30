@@ -18,6 +18,7 @@ async def perform_evaluation(
     """
     Performs LLM evaluations and returns both successful results and skipped resume IDs.
     """
+    # ... (code at the top remains the same)
     if not job_description_text or not resume_ids:
         raise ValueError("Job description and a list of resume IDs are required.")
 
@@ -63,6 +64,7 @@ async def perform_evaluation(
                 llm_prompt, deepseek_api_key, model_name=deepseek_model_name
             )
 
+            # _MODIFIED_: Add the score_breakdown field when creating the DB record.
             db_evaluation = models.EvaluationResult(
                 resume_id=db_resume.id,
                 job_description_id=db_job_description.id,
@@ -70,7 +72,8 @@ async def perform_evaluation(
                 overall_score=evaluation_output.get("overall_score"),
                 strengths=evaluation_output.get("strengths", []),  
                 weaknesses=evaluation_output.get("weaknesses", []), 
-                summary=evaluation_output.get("summary")
+                summary=evaluation_output.get("summary"),
+                score_breakdown=evaluation_output.get("score_breakdown", {}) # _NEW_
             )
             
             db.add(db_evaluation)

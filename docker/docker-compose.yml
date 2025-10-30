@@ -31,25 +31,26 @@ services:
     env_file:
       - ../.env
     environment:
-      DATABASE_URL: mysql+pymysql://user:ouWEe91@db:3306/semantic_profiler_db
+      - DATABASE_URL=mysql+pymysql://user:ouWEe91@db:3306/semantic_profiler_db
+      - PYTHONUNBUFFERED=1
     depends_on:
       db:
         condition: service_healthy
     networks:
       - app_network
     volumes:
-      - ./faiss_index_data:/app/faiss_data
-      - ../backend:/app/fastapi_backend
+      - faiss_index_data:/app/faiss_index_data
+      - ../backend:/app/backend
       - ../uploaded_resumes:/app/uploaded_resumes
     restart: unless-stopped
 
   frontend:
-    image: nginx:alpine
-    container_name: static_frontend
     ports:
-      - "3000:80"
-    volumes:
-      - ../frontend:/usr/share/nginx/html:ro
+      - "5173:80"
+    build:
+      context: ../frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    container_name: static_frontend
     depends_on:
       - backend
     networks:

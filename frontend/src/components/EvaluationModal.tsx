@@ -1,5 +1,5 @@
 import React from 'react';
-import type { EvaluationResult } from '../services/apiService';
+import type { EvaluationResult, ScoreBreakdown } from '../services/apiService';
 
 interface EvaluationModalProps {
   evaluation: EvaluationResult;
@@ -7,6 +7,31 @@ interface EvaluationModalProps {
 }
 
 const API_BASE_URL = 'http://localhost:8000';
+
+const ScoreBreakdownChart = ({ scores }: { scores: ScoreBreakdown }) => {
+  return (
+    <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
+      <h4>Score Breakdown</h4>
+      {Object.entries(scores).map(([category, score]) => (
+        <div key={category} style={{ marginBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span>{category}</span>
+            <strong>{score}</strong>
+          </div>
+          <div style={{ backgroundColor: '#e9ecef', borderRadius: '4px', height: '20px' }}>
+            <div style={{
+              width: `${score}%`,
+              height: '100%',
+              backgroundColor: score > 75 ? '#28a745' : score > 50 ? '#ffc107' : '#dc3545',
+              borderRadius: '4px',
+              transition: 'width 0.5s ease-in-out',
+            }}></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const modalOverlayStyle: React.CSSProperties = {
   position: 'fixed',
@@ -67,6 +92,11 @@ const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
         <h2>Evaluation for {evaluation.candidate_name}</h2>
         <hr />
         <p><strong>Overall Score:</strong> {evaluation.overall_score}/100</p>
+        
+        {evaluation.score_breakdown && Object.keys(evaluation.score_breakdown).length > 0 && (
+          <ScoreBreakdownChart scores={evaluation.score_breakdown} />
+        )}
+        
         <h4>Summary</h4>
         <p>{evaluation.summary}</p>
         <h4>Strengths</h4>
@@ -74,7 +104,13 @@ const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
         <h4>Weaknesses</h4>
         <ul>{evaluation.weaknesses.map((w, i) => <li key={`w-${i}`}>{w}</li>)}</ul>
         <hr />
-        <a href={resumeDownloadUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', padding: '10px 15px', backgroundColor: '#007bff', color: 'white', borderRadius: '4px' }}>
+        <a href={resumeDownloadUrl} target="_blank" rel="noopener noreferrer" style={{ 
+          textDecoration: 'none', 
+          padding: '10px 15px', 
+          backgroundColor: '#007bff', 
+          color: 'white', 
+          borderRadius: '4px' 
+          }}>
           Download Resume
         </a>
       </div>

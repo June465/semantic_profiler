@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -10,6 +9,9 @@ export interface ResumeResponse {
   upload_date: string;
 }
 
+// _NEW_: Define the ScoreBreakdown type for reusability.
+export type ScoreBreakdown = { [key: string]: number };
+
 export interface EvaluationResult {
   id: number;
   resume_id: number;
@@ -20,6 +22,8 @@ export interface EvaluationResult {
   weaknesses: string[];
   summary: string;
   evaluation_date: string;
+  // _NEW_: Add the score_breakdown property.
+  score_breakdown: ScoreBreakdown | null; 
 }
 
 export interface MassEvaluationResponse {
