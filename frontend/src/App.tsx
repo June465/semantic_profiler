@@ -2,7 +2,6 @@ import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import UploadPage from './pages/UploadPage';
 import DashboardPage from './pages/DashboardPage';
-import EvaluationDetailPage from './pages/EvaluationDetailPage';
 import './App.css';
 
 function App() {
@@ -19,9 +18,6 @@ function App() {
         <Routes>
           <Route path="/" element={<UploadPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/" element={<UploadPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/evaluations/:evaluationId" element={<EvaluationDetailPage />} />
         </Routes>
       </main>
       <footer>

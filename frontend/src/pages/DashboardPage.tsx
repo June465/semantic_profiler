@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { type EvaluationResult, getAllEvaluations } from '../services/apiService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import EvaluationModal from '../components/EvaluationModal'; 
+
+const API_BASE_URL = 'http://localhost:8000'; 
 
 const styles: { [key: string]: React.CSSProperties } = {
     container: { width: '100%', maxWidth: '1000px', margin: '0 auto', padding: '2rem', color: '#333' },
@@ -14,6 +16,7 @@ const DashboardPage = () => {
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEvaluation, setSelectedEvaluation] = useState<EvaluationResult | null>(null);
 
   useEffect(() => {
     const fetchEvaluations = async () => {
@@ -34,34 +37,40 @@ const DashboardPage = () => {
   return (
     <div style={styles.container}>
       <h2>Evaluation Dashboard</h2>
-      <p>History of all candidate evaluations.</p>
-
-      {isLoading && <LoadingSpinner message="Fetching history..." />}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
       
-      {!isLoading && !error && (
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Candidate Name</th>
-              <th style={styles.th}>Score</th>
-              <th style={styles.th}>Date</th>
-              <th style={styles.th}>Summary</th>
-            </tr>
-          </thead>
-          <tbody>
-            {evaluations.map(e => (
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th}>Candidate Name</th>
+            <th style={styles.th}>Score</th>
+            <th style={styles.th}>Date</th>
+            <th style={styles.th}>Actions</th> 
+          </tr>
+        </thead>
+        <tbody>
+          {evaluations.map(e => {
+            const resumeDownloadUrl = `${API_BASE_URL}/resumes/${e.resume_id}/file`;
+            return (
               <tr key={e.id}>
                 <td style={styles.td}>
-                  <Link to={`/evaluations/${e.id}`}>{e.candidate_name}</Link>
+                  <a href={resumeDownloadUrl} target="_blank" rel="noopener noreferrer">{e.candidate_name}</a>
                 </td>
                 <td style={styles.td}>{e.overall_score}/100</td>
                 <td style={styles.td}>{new Date(e.evaluation_date).toLocaleDateString()}</td>
-                <td style={styles.td}>{e.summary}</td>
+                <td style={styles.td}>
+                  <button onClick={() => setSelectedEvaluation(e)}>View Details</button>
+                </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {selectedEvaluation && (
+        <EvaluationModal 
+          evaluation={selectedEvaluation}
+          onClose={() => setSelectedEvaluation(null)}
+        />
       )}
     </div>
   );
