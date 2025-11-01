@@ -1,73 +1,74 @@
-import React, { useState, useEffect } from 'react';
-import { type EvaluationResult, getAllEvaluations } from '../services/apiService';
-import LoadingSpinner from '../components/LoadingSpinner';
-import EvaluationModal from '../components/EvaluationModal'; 
-
-const API_BASE_URL = 'http://localhost:8000'; 
-
-const styles: { [key: string]: React.CSSProperties } = {
-    container: { width: '100%', maxWidth: '1000px', margin: '0 auto', padding: '2rem', color: '#333' },
-    table: { width: '100%', borderCollapse: 'collapse', marginTop: '2rem', backgroundColor: 'white' },
-    th: { border: '1px solid #ddd', padding: '12px', textAlign: 'left', backgroundColor: '#f2f2f2' },
-    td: { border: '1px solid #ddd', padding: '12px' },
-};
+// In frontend/src/pages/DashboardPage.tsx
+import { useState, useEffect } from 'react';
+import { getAllEvaluations } from '../services/apiService';
+import type { EvaluationResult } from '../services/apiService';
+import EvaluationModal from '../components/EvaluationModal';
+import styles from './DashboardPage.module.css';
 
 const DashboardPage = () => {
   const [evaluations, setEvaluations] = useState<EvaluationResult[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedEvaluation, setSelectedEvaluation] = useState<EvaluationResult | null>(null);
+  // _FIXED_: These are now used
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEvaluations = async () => {
       try {
-        setIsLoading(true);
         const data = await getAllEvaluations();
         setEvaluations(data.sort((a, b) => new Date(b.evaluation_date).getTime() - new Date(a.evaluation_date).getTime()));
       } catch (err) {
         setError('Failed to fetch evaluation history.');
+        console.error(err);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchEvaluations();
-  }, []); 
+  }, []);
+
+  // _FIXED_: Add UI for loading and error states
+  if (isLoading) {
+    return <div className={styles.centered}>Loading evaluation history...</div>;
+  }
+
+  if (error) {
+    return <div className={`${styles.centered} ${styles.error}`}>{error}</div>;
+  }
 
   return (
-    <div style={styles.container}>
-      <h2>Evaluation Dashboard</h2>
-      
-      <table style={styles.table}>
+    <div className={styles.dashboardContainer}>
+      <h2>Evaluation History</h2>
+      {evaluations.length === 0 ? (
+        <p>No evaluations have been performed yet.</p>
+      ) : (
+      <table className={styles.evalTable}>
         <thead>
           <tr>
-            <th style={styles.th}>Candidate Name</th>
-            <th style={styles.th}>Score</th>
-            <th style={styles.th}>Date</th>
-            <th style={styles.th}>Actions</th> 
+            <th>Candidate Name</th>
+            <th>Overall Score</th>
+            <th>Date</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {evaluations.map(e => {
-            const resumeDownloadUrl = `${API_BASE_URL}/resumes/${e.resume_id}/file`;
-            return (
-              <tr key={e.id}>
-                <td style={styles.td}>
-                  <a href={resumeDownloadUrl} target="_blank" rel="noopener noreferrer">{e.candidate_name}</a>
-                </td>
-                <td style={styles.td}>{e.overall_score}/100</td>
-                <td style={styles.td}>{new Date(e.evaluation_date).toLocaleDateString()}</td>
-                <td style={styles.td}>
-                  <button onClick={() => setSelectedEvaluation(e)}>View Details</button>
-                </td>
-              </tr>
-            );
-          })}
+          {evaluations.map((evaluation) => (
+            <tr key={evaluation.id}>
+              <td>{evaluation.candidate_name}</td>
+              <td>{evaluation.overall_score}</td>
+              <td>{new Date(evaluation.evaluation_date).toLocaleString()}</td>
+              <td>
+                <button onClick={() => setSelectedEvaluation(evaluation)}>View Details</button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
+      )}
 
       {selectedEvaluation && (
-        <EvaluationModal 
+        <EvaluationModal
           evaluation={selectedEvaluation}
           onClose={() => setSelectedEvaluation(null)}
         />

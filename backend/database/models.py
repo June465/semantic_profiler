@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float, Boolean
 from sqlalchemy.dialects.mysql import JSON
-from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship, Mapped
 from datetime import datetime
 from typing import List, Optional
@@ -8,6 +7,17 @@ from typing import List, Optional
 from sqlalchemy.orm import DeclarativeBase
 class Base(DeclarativeBase):
     pass
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = Column(Integer, primary_key=True, index=True)
+    username: Mapped[str] = Column(String(255), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = Column(String(255), nullable=False)
+    is_active: Mapped[bool] = Column(Boolean, default=True)
+
+    def __repr__(self):
+        return f"<User(username='{self.username}')>"
 
 
 class Resume(Base):

@@ -1,12 +1,10 @@
-# In backend/app/routers/evaluation.py
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
 from backend.database.database import get_db
 from backend.services import evaluation_service
-
+from backend.core.security import get_current_user
 from backend.schemas import evaluation as schemas
 
 router = APIRouter(
@@ -17,7 +15,8 @@ router = APIRouter(
 @router.post("/", response_model=schemas.MassEvaluationResponse, status_code=status.HTTP_200_OK)
 async def create_evaluation(
     evaluation_input: schemas.EvaluationRequest, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
 ):
     """
     Create a new evaluation for one or more resumes against a job description.
@@ -44,7 +43,8 @@ async def create_evaluation(
 @router.get("/{evaluation_id}", response_model=schemas.EvaluationResultResponse)
 async def get_single_evaluation_result(
     evaluation_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
 ):
     """
     Retrieves the detailed results of a specific candidate evaluation.
@@ -56,7 +56,8 @@ async def get_single_evaluation_result(
 
 @router.get("/", response_model=List[schemas.EvaluationResultResponse])
 async def get_all_evaluation_results(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
 ):
     """
     Retrieves a list of all performed evaluation results.

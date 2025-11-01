@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.database.database import create_tables
 from backend.core import embedding_generator, vector_store, llm_evaluator
-from backend.app.routers import resume, evaluation
+from backend.app.routers import resume, evaluation, auth
 import os
 
 # Define paths for FAISS index and metadata persistence
@@ -79,6 +79,7 @@ async def startup_event():
     print("--- [STARTUP] Application startup sequence complete. Ready to accept requests. ---\n")
 
 
+app.include_router(auth.router)
 app.include_router(resume.router)
 app.include_router(evaluation.router)
 

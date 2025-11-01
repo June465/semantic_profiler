@@ -1,4 +1,3 @@
-import React from 'react';
 import { type EvaluationResult } from '../services/apiService';
 import styles from './ResultsDisplay.module.css';
 

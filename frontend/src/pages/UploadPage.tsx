@@ -1,5 +1,4 @@
-// In frontend/src/pages/UploadPage.tsx
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { createEvaluation, type EvaluationResult } from '../services/apiService';
 import { uploadResume } from '../services/apiService';
 import styles from './UploadPage.module.css'; 

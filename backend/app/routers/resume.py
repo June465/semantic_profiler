@@ -8,6 +8,7 @@ from backend.database.database import get_db
 from backend.services import resume_service
 from backend.schemas import resume as resume_schemas 
 from backend.database import models
+from backend.core.security import get_current_user
 
 RESUME_UPLOAD_DIR = "/app/uploaded_resumes"
 
@@ -19,7 +20,8 @@ router = APIRouter(
 @router.post("/", response_model=resume_schemas.ResumeResponse, status_code=status.HTTP_201_CREATED)
 async def upload_resume(
     file: UploadFile = File(..., description="The resume file to upload (PDF or DOCX)."),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
 ):
     """
     Uploads a resume file, parses its content, stores it in the database,
@@ -41,7 +43,8 @@ async def upload_resume(
 @router.get("/{resume_id}", response_model=resume_schemas.ResumeResponse)
 async def get_single_resume(
     resume_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
 ):
     """
     Retrieves details of a specific resume by its ID.
@@ -53,7 +56,8 @@ async def get_single_resume(
 
 @router.get("/", response_model=List[resume_schemas.ResumeResponse])
 async def get_all_resumes(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
 ):
     """
     Retrieves a list of all uploaded resumes.
@@ -62,7 +66,11 @@ async def get_all_resumes(
     return resumes
 
 @router.get("/{resume_id}/file", response_class=FileResponse)
-async def get_resume_file(resume_id: int, db: Session = Depends(get_db)):
+async def get_resume_file(
+    resume_id: int, 
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
     db_resume = db.query(models.Resume).filter(models.Resume.id == resume_id).first()
     if not db_resume:
         raise HTTPException(status_code=404, detail="Resume not found in database.")
