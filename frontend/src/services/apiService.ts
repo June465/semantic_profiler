@@ -39,6 +39,7 @@ export interface EvaluationResult {
   anonymized_score: number | null;
   score_discrepancy: number | null;
   bias_flag: boolean;
+  percentile_rank: number | null;
 }
 
 export interface MassEvaluationResponse {

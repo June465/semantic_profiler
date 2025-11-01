@@ -61,6 +61,11 @@
     margin-top: 1rem;
 }
 
+.percentile {
+  color: #0056b3;
+  font-weight: 600;
+}
+
 .warningIcon {
   cursor: help;
   margin-right: 8px;

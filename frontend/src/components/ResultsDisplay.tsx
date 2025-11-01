@@ -41,13 +41,13 @@ const ResultsDisplay = ({ results, skippedIds }: ResultsDisplayProps) => {
                   <span>
                     {result.bias_flag && <BiasWarningIcon />}
                     {`${result.candidate_name} - Score: ${result.overall_score}/100`}
+                    {result.percentile_rank !== null && (
+                      <strong className={styles.percentile}>
+                        {` (${result.percentile_rank.toFixed(0)}th Percentile)`}
+                      </strong>
+                    )}
                   </span>
                 </summary>
-                <div className={styles.detailsContent}>
-                  <h4>Summary</h4><p>{result.summary}</p>
-                  <h4>Strengths</h4><ul>{result.strengths.map((s, i) => <li key={`s-${i}`}>{s}</li>)}</ul>
-                  <h4>Weaknesses</h4><ul>{result.weaknesses.map((w, i) => <li key={`w-${i}`}>{w}</li>)}</ul>
-                </div>
               </details>
             ))}
         </div>

@@ -75,6 +75,9 @@ class EvaluationResult(Base):
     score_discrepancy: Mapped[Optional[float]] = Column(Float, nullable=True)
     bias_flag: Mapped[Optional[bool]] = Column(Boolean, nullable=True, default=False)
     
+    # _NEW_: Add a column for the percentile rank within the evaluation batch.
+    percentile_rank: Mapped[Optional[float]] = Column(Float, nullable=True)
+
     evaluation_date: Mapped[datetime] = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     resume: Mapped["Resume"] = relationship("Resume", back_populates="evaluation_results")

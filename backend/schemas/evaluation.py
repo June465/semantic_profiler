@@ -27,6 +27,9 @@ class EvaluationResultResponse(EvaluationResultBase):
     score_discrepancy: Optional[float] = Field(None, description="Absolute difference between original and anonymized scores.")
     bias_flag: bool = Field(False, description="Flag indicating if the score discrepancy exceeds a set threshold.")
     
+    # _NEW_: Add percentile_rank to the API response schema.
+    percentile_rank: Optional[float] = Field(None, ge=0, le=100, description="The candidate's score percentile rank within the batch.")
+
     class Config:
         from_attributes = True
 

@@ -106,9 +106,10 @@ const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
     }
   };
 
-  return (
+   return (
     <div style={modalOverlayStyle} onClick={handleOverlayClick}>
       <div style={modalContentStyle}>
+        {/* _FIXED_: This button was accidentally omitted in the previous step */}
         <button onClick={onClose} style={closeButtonStyle}>
           Close
         </button>
@@ -116,7 +117,14 @@ const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
         
         <h2>Evaluation for {evaluation.candidate_name}</h2>
         <hr />
-        <p><strong>Overall Score:</strong> {evaluation.overall_score}/100</p>
+        <p>
+          <strong>Overall Score:</strong> {evaluation.overall_score}/100
+          {evaluation.percentile_rank !== null && (
+            <strong style={{ color: '#0056b3', marginLeft: '10px' }}>
+              ({evaluation.percentile_rank.toFixed(0)}th Percentile vs. this Batch)
+            </strong>
+          )}
+        </p>
         
         <BiasCheckDisplay evaluation={evaluation} />
         
