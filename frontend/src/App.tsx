@@ -18,7 +18,8 @@ function App() {
   return (
     <div className="app-container">
       <header>
-        <h1>Semantic Profiler</h1>
+        <h1>IntegritasAI</h1>
+        <h2>Beyond Keywords: Unlocking True Talent with Semantic AI </h2>
         <nav style={{ marginTop: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
           {auth.isAuthenticated && ( 
             <>
@@ -51,7 +52,7 @@ function App() {
         </Routes>
       </main>
       <footer>
-        <p>&copy; 2025 Your Name</p>
+        <p>&copy; 2025 Gowri Ajith(23BCE1417) <br></br> School of Computer Science and Engineering, VIT Chennai</p>
       </footer>
     </div>
   );
