@@ -1,5 +1,3 @@
-# In backend/requirements.txt
-
 # Core Application
 fastapi
 uvicorn[standard]
@@ -17,6 +15,12 @@ langchain
 sentence-transformers
 faiss-cpu
 openai
+spacy==3.7.2
 
 # Utilities
 numpy
+
+# Security & Authentication
+passlib[bcrypt]
+bcrypt==4.1.2
+python-jose[cryptography]

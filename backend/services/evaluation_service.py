@@ -1,13 +1,43 @@
 from sqlalchemy.orm import Session
 import os
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Optional, Tuple
+# _NEW_: Import NumPy for efficient percentile calculation
+import numpy as np
 
 from backend.database import models
-from backend.core import embedding_generator, vector_store, llm_evaluator
+from backend.core import embedding_generator, vector_store, llm_evaluator, bias_module
+
+BIAS_DISCREPANCY_THRESHOLD = 10.0
 
 class EvaluationServiceError(Exception):
-    """Custom exception for evaluation service failures."""
     pass
+
+# _NEW_: Helper function to calculate percentile ranks
+def calculate_percentiles(evaluations: List[models.EvaluationResult]) -> List[models.EvaluationResult]:
+    """
+    Calculates the percentile rank for each evaluation result within the batch.
+    """
+    if not evaluations:
+        return []
+
+    scores = np.array([e.overall_score for e in evaluations if e.overall_score is not None])
+    if len(scores) == 0:
+        return evaluations
+
+    for eval_result in evaluations:
+        if eval_result.overall_score is not None:
+            # Calculate how many scores are less than the current score
+            less_than_count = np.sum(scores < eval_result.overall_score)
+            # Calculate how many scores are equal to the current score
+            equal_to_count = np.sum(scores == eval_result.overall_score)
+            
+            # The rank is the percentage of scores strictly less than the current score,
+            # plus half the percentage of scores equal to the current score.
+            # This handles ties gracefully.
+            rank = (less_than_count + 0.5 * equal_to_count) / len(scores) * 100
+            eval_result.percentile_rank = round(rank, 2)
+            
+    return evaluations
 
 async def perform_evaluation(
     db: Session,
@@ -15,21 +45,26 @@ async def perform_evaluation(
     resume_ids: List[int],
     job_title: Optional[str] = None
 ) -> Tuple[List[models.EvaluationResult], List[int]]:
-    """
-    Performs LLM evaluations and returns both successful results and skipped resume IDs.
-    """
     if not job_description_text or not resume_ids:
         raise ValueError("Job description and a list of resume IDs are required.")
 
     db_job_description = models.JobDescription(description=job_description_text, title=job_title)
     db.add(db_job_description)
-    db.commit()
-    db.refresh(db_job_description)
-
+    
+    # _FIXED_: Use db.flush() here. This sends the INSERT to the DB and assigns
+    # an ID to db_job_description without ending the transaction.
+    db.flush()
+    
     embedding_model = embedding_generator.initialize_embedding_model()
+    # ... (rest of the function's logic is correct as provided before)
+    # ...
+    # This includes the loop for evaluations, appending to a temp list,
+    # the post-processing step to calculate percentiles, and the final db.commit().
+    # Only the initial db.commit() needed to be changed to db.flush().
+
     job_description_embedding = embedding_generator.get_embeddings(job_description_text, embedding_model)
 
-    evaluated_results: List[models.EvaluationResult] = []
+    temp_evaluated_results: List[models.EvaluationResult] = []
     skipped_ids: List[int] = []
 
     for resume_id in resume_ids:
@@ -40,18 +75,10 @@ async def perform_evaluation(
 
         try:
             relevant_chunks_metadata = vector_store.search_index(job_description_embedding, k=10)
-            candidate_specific_chunks = [
-                m['chunk_text'] for m in relevant_chunks_metadata
-                if m.get('resume_id') == resume_id
-            ]
+            candidate_specific_chunks = [m['chunk_text'] for m in relevant_chunks_metadata if m.get('resume_id') == resume_id]
             if not candidate_specific_chunks:
-                print(f"Warning: No relevant chunks for resume ID {resume_id}. Skipping.")
                 skipped_ids.append(resume_id)
                 continue
-
-            llm_prompt = llm_evaluator.construct_evaluation_prompt(
-                job_description_text, candidate_specific_chunks
-            )
 
             deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
             if not deepseek_api_key:
@@ -59,33 +86,55 @@ async def perform_evaluation(
             
             deepseek_model_name = os.getenv("DEEPSEEK_MODEL_NAME", "deepseek-coder")
 
+            llm_prompt = llm_evaluator.construct_evaluation_prompt(job_description_text, candidate_specific_chunks)
             evaluation_output = llm_evaluator.call_llm_for_evaluation(
                 llm_prompt, deepseek_api_key, model_name=deepseek_model_name
             )
 
+            anonymized_chunks = bias_module.anonymize_chunks(candidate_specific_chunks)
+            anonymized_llm_prompt = llm_evaluator.construct_evaluation_prompt(job_description_text, anonymized_chunks)
+            anonymized_output = llm_evaluator.call_llm_for_evaluation(
+                anonymized_llm_prompt, deepseek_api_key, model_name=deepseek_model_name
+            )
+            
+            original_score = evaluation_output.get("overall_score")
+            anonymized_score = anonymized_output.get("overall_score")
+
+            score_discrepancy = None
+            bias_flag = False
+            if original_score is not None and anonymized_score is not None:
+                score_discrepancy = abs(original_score - anonymized_score)
+                if score_discrepancy > BIAS_DISCREPANCY_THRESHOLD:
+                    bias_flag = True
+            
             db_evaluation = models.EvaluationResult(
                 resume_id=db_resume.id,
                 job_description_id=db_job_description.id,
                 candidate_name=evaluation_output.get("candidate_name", "Unknown Candidate"),
-                overall_score=evaluation_output.get("overall_score"),
-                strengths=evaluation_output.get("strengths", []),  
-                weaknesses=evaluation_output.get("weaknesses", []), 
-                summary=evaluation_output.get("summary")
+                overall_score=original_score,
+                strengths=evaluation_output.get("strengths", []),
+                weaknesses=evaluation_output.get("weaknesses", []),
+                summary=evaluation_output.get("summary"),
+                score_breakdown=evaluation_output.get("score_breakdown", {}),
+                anonymized_score=anonymized_score,
+                score_discrepancy=score_discrepancy,
+                bias_flag=bias_flag
             )
-            
-            db.add(db_evaluation)
-            db.commit()
-            db.refresh(db_evaluation)
-            evaluated_results.append(db_evaluation)
-
-        except (llm_evaluator.LLMEvaluationError, vector_store.VectorStoreError) as e:
-            db.rollback()
-            raise EvaluationServiceError(f"Evaluation failed for resume {resume_id}: {e}")
+            temp_evaluated_results.append(db_evaluation)
         except Exception as e:
-            db.rollback()
-            raise EvaluationServiceError(f"Unexpected error for resume {resume_id}: {e}")
+            print(f"Evaluation failed for resume {resume_id}: {e}")
+            skipped_ids.append(resume_id)
 
-    return evaluated_results, skipped_ids
+    if temp_evaluated_results:
+        final_results_with_percentiles = calculate_percentiles(temp_evaluated_results)
+        db.add_all(final_results_with_percentiles)
+        db.commit()
+        for result in final_results_with_percentiles:
+            db.refresh(result)
+        return final_results_with_percentiles, skipped_ids
+
+    db.commit()
+    return [], skipped_ids
 
 async def get_evaluation_results_by_id(db: Session, evaluation_id: int) -> Optional[models.EvaluationResult]:
     return db.query(models.EvaluationResult).filter(models.EvaluationResult.id == evaluation_id).first()

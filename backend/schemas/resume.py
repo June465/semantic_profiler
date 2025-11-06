@@ -14,8 +14,6 @@ class ResumeResponse(ResumeBase):
     id: int = Field(..., description="Unique ID of the resume.")
     parsed_text: str = Field(..., description="The full parsed text of the resume.")
     upload_date: datetime = Field(..., description="Timestamp of when the resume was uploaded.")
-    # You might want to omit parsed_text for large documents in a response model
-    # or create a separate endpoint for retrieving raw text. For this guide, we include it.
-
+    
     class Config:
-        from_attributes = True # Changed from orm_mode = True
+        from_attributes = True

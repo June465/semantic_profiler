@@ -1,17 +1,23 @@
-# In backend/database/models.py
-
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float
-from sqlalchemy.dialects.mysql import JSON  # <--- IMPORT THIS
-from sqlalchemy.orm import declarative_base # <-- Use this import for newer SQLAlchemy
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Float, Boolean
+from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.orm import relationship, Mapped
 from datetime import datetime
 from typing import List, Optional
 
-# Base = declarative_base() <-- This is the older way
-# Use the new way to be consistent with Mapped
 from sqlalchemy.orm import DeclarativeBase
 class Base(DeclarativeBase):
     pass
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = Column(Integer, primary_key=True, index=True)
+    username: Mapped[str] = Column(String(255), unique=True, index=True, nullable=False)
+    hashed_password: Mapped[str] = Column(String(255), nullable=False)
+    is_active: Mapped[bool] = Column(Boolean, default=True)
+
+    def __repr__(self):
+        return f"<User(username='{self.username}')>"
 
 
 class Resume(Base):
@@ -63,6 +69,15 @@ class EvaluationResult(Base):
     strengths: Mapped[list] = Column(JSON, nullable=False)    
     weaknesses: Mapped[list] = Column(JSON, nullable=False)   
     summary: Mapped[str] = Column(Text, nullable=False)
+    score_breakdown: Mapped[dict] = Column(JSON, nullable=True)
+    
+    anonymized_score: Mapped[Optional[float]] = Column(Float, nullable=True)
+    score_discrepancy: Mapped[Optional[float]] = Column(Float, nullable=True)
+    bias_flag: Mapped[Optional[bool]] = Column(Boolean, nullable=True, default=False)
+    
+    # _NEW_: Add a column for the percentile rank within the evaluation batch.
+    percentile_rank: Mapped[Optional[float]] = Column(Float, nullable=True)
+
     evaluation_date: Mapped[datetime] = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     resume: Mapped["Resume"] = relationship("Resume", back_populates="evaluation_results")

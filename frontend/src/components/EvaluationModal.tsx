@@ -1,5 +1,5 @@
 import React from 'react';
-import type { EvaluationResult } from '../services/apiService';
+import type { EvaluationResult, ScoreBreakdown } from '../services/apiService';
 
 interface EvaluationModalProps {
   evaluation: EvaluationResult;
@@ -7,6 +7,31 @@ interface EvaluationModalProps {
 }
 
 const API_BASE_URL = 'http://localhost:8000';
+
+const ScoreBreakdownChart = ({ scores }: { scores: ScoreBreakdown }) => {
+  return (
+    <div style={{ marginTop: '1.5rem', marginBottom: '1rem' }}>
+      <h4>Score Breakdown</h4>
+      {Object.entries(scores).map(([category, score]) => (
+        <div key={category} style={{ marginBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span>{category}</span>
+            <strong>{score}</strong>
+          </div>
+          <div style={{ backgroundColor: '#e9ecef', borderRadius: '4px', height: '20px' }}>
+            <div style={{
+              width: `${score}%`,
+              height: '100%',
+              backgroundColor: score > 75 ? '#28a745' : score > 50 ? '#ffc107' : '#dc3545',
+              borderRadius: '4px',
+              transition: 'width 0.5s ease-in-out',
+            }}></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const modalOverlayStyle: React.CSSProperties = {
   position: 'fixed',
@@ -47,6 +72,31 @@ const closeButtonStyle: React.CSSProperties = {
   zIndex: 10,         
 };
 
+const BiasCheckDisplay = ({ evaluation }: { evaluation: EvaluationResult }) => {
+  if (evaluation.anonymized_score === null) {
+    return null; 
+  }
+
+  const discrepancyStyle: React.CSSProperties = {
+    color: evaluation.bias_flag ? '#dc3545' : '#28a745',
+    fontWeight: 'bold',
+  };
+
+  return (
+    <div style={{ border: '1px solid #ddd', borderRadius: '4px', padding: '1rem', marginTop: '1.5rem', backgroundColor: '#f9f9f9' }}>
+      <h4>Bias Check Analysis</h4>
+      {evaluation.bias_flag && (
+         <p style={{ color: '#dc3545', fontWeight: 'bold' }}>
+           ⚠️ Warning: A significant score discrepancy was detected after removing personal information. This may indicate potential bias in the evaluation.
+         </p>
+      )}
+      <p><strong>Original Score:</strong> {evaluation.overall_score}</p>
+      <p><strong>Anonymized Score:</strong> {evaluation.anonymized_score}</p>
+      <p><strong>Score Discrepancy:</strong> <span style={discrepancyStyle}>{evaluation.score_discrepancy?.toFixed(2)}</span> points</p>
+    </div>
+  );
+};
+
 const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
   const resumeDownloadUrl = `${API_BASE_URL}/resumes/${evaluation.resume_id}/file`;
 
@@ -56,9 +106,10 @@ const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
     }
   };
 
-  return (
+   return (
     <div style={modalOverlayStyle} onClick={handleOverlayClick}>
       <div style={modalContentStyle}>
+        {/* _FIXED_: This button was accidentally omitted in the previous step */}
         <button onClick={onClose} style={closeButtonStyle}>
           Close
         </button>
@@ -66,7 +117,21 @@ const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
         
         <h2>Evaluation for {evaluation.candidate_name}</h2>
         <hr />
-        <p><strong>Overall Score:</strong> {evaluation.overall_score}/100</p>
+        <p>
+          <strong>Overall Score:</strong> {evaluation.overall_score}/100
+          {evaluation.percentile_rank !== null && (
+            <strong style={{ color: '#0056b3', marginLeft: '10px' }}>
+              ({evaluation.percentile_rank.toFixed(0)}th Percentile vs. this Batch)
+            </strong>
+          )}
+        </p>
+        
+        <BiasCheckDisplay evaluation={evaluation} />
+        
+        {evaluation.score_breakdown && Object.keys(evaluation.score_breakdown).length > 0 && (
+          <ScoreBreakdownChart scores={evaluation.score_breakdown} />
+        )}
+        
         <h4>Summary</h4>
         <p>{evaluation.summary}</p>
         <h4>Strengths</h4>
@@ -74,7 +139,13 @@ const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
         <h4>Weaknesses</h4>
         <ul>{evaluation.weaknesses.map((w, i) => <li key={`w-${i}`}>{w}</li>)}</ul>
         <hr />
-        <a href={resumeDownloadUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', padding: '10px 15px', backgroundColor: '#007bff', color: 'white', borderRadius: '4px' }}>
+        <a href={resumeDownloadUrl} target="_blank" rel="noopener noreferrer" style={{ 
+          textDecoration: 'none', 
+          padding: '10px 15px', 
+          backgroundColor: '#007bff', 
+          color: 'white', 
+          borderRadius: '4px' 
+          }}>
           Download Resume
         </a>
       </div>
