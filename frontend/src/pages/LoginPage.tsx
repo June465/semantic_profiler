@@ -39,6 +39,7 @@ const LoginPage = () => {
           <input
             id="username"
             type="text"
+            data-testid="login-username-input"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -50,13 +51,14 @@ const LoginPage = () => {
           <input
             id="password"
             type="password"
+            data-testid="login-password-input"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             disabled={isLoading}
           />
         </div>
-        <button type="submit" disabled={isLoading}>
+        <button type="submit" data-testid="login-submit-button" disabled={isLoading}>
           {isLoading ? 'Logging in...' : 'Login'}
         </button>
       </form>

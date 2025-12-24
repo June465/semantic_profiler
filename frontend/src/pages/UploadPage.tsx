@@ -1,3 +1,5 @@
+// In frontend/src/pages/UploadPage.tsx
+
 import { useState } from 'react';
 import { createEvaluation, type EvaluationResult } from '../services/apiService';
 import { uploadResume } from '../services/apiService';
@@ -13,6 +15,7 @@ const UploadPage = () => {
   const [evaluationResults, setEvaluationResults] = useState<EvaluationResult[]>([]);
   const [skippedIds, setSkippedIds] = useState<number[]>([]);
 
+  // This function is now correctly typed for the data it receives from UploadForm
   const handleFormSubmit = async (files: FileList, title: string, description: string) => {
     setIsLoading(true);
     setError(null);
@@ -42,7 +45,15 @@ const UploadPage = () => {
       <h2>Upload and Evaluate</h2>
       <p>Submit resumes and a job description to get a detailed AI-powered analysis.</p>
 
-      <UploadForm isLoading={isLoading} onSubmit={handleFormSubmit} />
+      {/* _MODIFIED_: We are now passing two new props to UploadForm.
+          These props contain the stable selector IDs that testing tools will look for.
+          This allows the parent component to define the test IDs for its children. */}
+      <UploadForm 
+        isLoading={isLoading} 
+        onSubmit={handleFormSubmit}
+        data-testid-upload-input="resume-upload-input"
+        data-testid-evaluate-button="start-evaluation-button" 
+      />
       
       {isLoading && <LoadingSpinner message="Evaluating, please wait..." />}
       {error && <p style={{ color: 'red', marginTop: '1rem' }}>Error: {error}</p>}

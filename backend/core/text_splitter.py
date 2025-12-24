@@ -3,52 +3,31 @@ from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 def clean_text(text: str) -> str:
-    """
-    Performs thorough cleaning of extracted text from resumes.
-    Aims to normalize whitespace, remove common noise, and create a single, flattened string.
 
-    Args:
-        text (str): The raw text extracted from a resume.
-
-    Returns:
-        str: The thoroughly cleaned, flattened text.
-    """
     if not isinstance(text, str):
         return ""
 
-    # Ensure input is string for regex operations
     cleaned_text = str(text)
 
-    # Step 1: Remove common resume noise patterns with empty string replacement.
     page_number_patterns = r'\bPage\s+\d+\s+of\s+\d+\b|\b\d+\s*\|\s*\d+\b|\b\d+/\d+\b'
     cleaned_text = re.sub(page_number_patterns, '', cleaned_text, flags=re.IGNORECASE)
 
-    # Step 2: Normalize all whitespace (including newlines, tabs, multiple spaces) to a single space.
     cleaned_text = re.sub(r'\s+', ' ', cleaned_text)
 
-    # Step 3: Clean up punctuation artifacts.
-    # 3a. Remove any space that appears directly before a punctuation mark.
-    # Example: "word . " -> "word."
     cleaned_text = re.sub(r'\s+([.,;!?:])', r'\1', cleaned_text)
 
-    # 3b. Replace multiple consecutive punctuation marks with a single one.
-    # Example: "word..word" -> "word.word"
     cleaned_text = re.sub(r'([.,;!?:])\1+', r'\1', cleaned_text)
     
     cleaned_text = cleaned_text.strip()
 
     cleaned_text = re.sub(r' +', ' ', cleaned_text)
 
-    # Step 6: Unicode Normalization (Optional but good practice)
     # import unicodedata
     # cleaned_text = unicodedata.normalize('NFKC', cleaned_text)
 
     return cleaned_text 
 
 def split_text_into_chunks(text: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> List[str]:
-    """
-    Splits the cleaned text into smaller, overlapping chunks suitable for embedding.
-    """
     if not isinstance(text, str) or not text.strip():
         return []
 
@@ -100,7 +79,6 @@ if __name__ == '__main__':
     print(cleaned)
     print(f"Cleaned length: {len(cleaned)}")
 
-    # Test with custom chunk sizes
     chunks_default = split_text_into_chunks(cleaned)
     print(f"\n--- Chunks (Default: size={1000}, overlap={200}) ---")
     for i, chunk in enumerate(chunks_default):
@@ -113,7 +91,6 @@ if __name__ == '__main__':
         print(f"Chunk {i+1} (len: {len(chunk)}):\n'{chunk[:100]}...'")
     print(f"Total chunks: {len(chunks_small)}")
 
-    # Test edge cases
     print("\n--- Testing Edge Cases ---")
     print("Empty text cleanup:", clean_text(""))
     print("Whitespace text cleanup:", clean_text("   \n\t  "))

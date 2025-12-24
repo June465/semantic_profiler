@@ -107,10 +107,9 @@ const EvaluationModal = ({ evaluation, onClose }: EvaluationModalProps) => {
   };
 
    return (
-    <div style={modalOverlayStyle} onClick={handleOverlayClick}>
+    <div style={modalOverlayStyle} onClick={handleOverlayClick} data-testid="evaluation-modal-overlay">
       <div style={modalContentStyle}>
-        {/* _FIXED_: This button was accidentally omitted in the previous step */}
-        <button onClick={onClose} style={closeButtonStyle}>
+        <button onClick={onClose} style={closeButtonStyle} data-testid="evaluation-modal-close-button">
           Close
         </button>
         <div style={{ clear: 'both' }}></div>

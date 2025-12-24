@@ -6,7 +6,6 @@ from docx.opc.exceptions import OpcError
 from typing import Optional
 
 class ResumeParsingError(Exception):
-    """Custom exception for resume parsing failures."""
     pass
 
 def parse_resume_file(file_path: str) -> Optional[str]:
