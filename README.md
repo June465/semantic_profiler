@@ -1,122 +1,90 @@
-# Semantic Profiler
+# 🎯 Semantic Profiler
 
-The Semantic Profiler is a full-stack web application designed to automate and enhance the recruitment process by providing AI-driven analysis of candidate resumes against specific job descriptions.
+> **AI-Powered Resume Profiling & Candidate Evaluation** using Retrieval-Augmented Generation (RAG).
 
-## Table of Contents
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [Prerequisites](#prerequisites)
-- [Setup and Configuration](#setup-and-configuration)
-- [Running the Application](#running-the-application)
-- [Creating the First User](#creating-the-first-user)
-- [Usage](#usage)
-- [Stopping the Application](#stopping-the-application)
+Semantic Profiler automates resume screening by analyzing candidate resumes against job descriptions using vector search, LLM scoring, explainable AI (XAI), and bias-awareness checks.
 
-## Features
+---
 
-- **AI-Powered Semantic Analysis:** Uses a Retrieval-Augmented Generation (RAG) pipeline to provide nuanced, context-aware evaluations beyond simple keyword matching.
-- **Explainable AI (XAI):** Delivers a detailed breakdown of scores across categories like Technical Match, Experience, and Soft Skills.
-- **Bias-Aware Evaluation:** Performs a parallel evaluation on anonymized resume data to flag significant score discrepancies and alert recruiters to potential bias.
-- **Comparative Analysis:** Calculates percentile rankings for each candidate within an evaluation batch, providing immediate context on their performance relative to the pool.
-- **Secure Authentication:** All API endpoints are protected via JWT, with a complete login and protected route system.
-- **Modern Tech Stack:** Built with FastAPI, React, and fully containerized with Docker for consistent and easy deployment.
+## ✨ Features
 
-## Technology Stack
+- **🧠 RAG Semantic Matching**: Deep semantic evaluation beyond simple keyword matching using FAISS vector search.
+- **📊 Explainable AI (XAI)**: Detailed score breakdowns across Technical Match, Experience, and Soft Skills.
+- **⚖️ Bias Detection**: Parallel evaluation on anonymized data to flag potential evaluation bias.
+- **🏆 Candidate Ranking**: Automated percentile calculation and candidate comparison.
+- **🔐 Secure Authentication**: Full JWT-based user authentication and protected routing.
 
-- **Backend:** Python, FastAPI, SQLAlchemy
-- **Frontend:** React, TypeScript, Vite, CSS Modules
-- **Database:** MySQL
-- **AI / ML:** `sentence-transformers`, `faiss-cpu`, `spacy`, `langchain`
-- **DevOps:** Docker, Docker Compose, Nginx
+---
 
-## Prerequisites
+## 🛠️ Tech Stack
 
-- **Docker and Docker Compose:** The entire application runs in containers. You must have Docker Desktop (or Docker Engine with the Compose plugin) installed and running on your system.
-  - [Install Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- **Git:** For cloning the repository.
-- **Web Browser:** A modern web browser like Chrome, Firefox, or Edge.
+| Domain | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, TypeScript, Vite, CSS Modules |
+| **Backend** | Python, FastAPI, SQLAlchemy, PyJWT |
+| **AI / RAG** | Sentence Transformers, FAISS, LangChain, DeepSeek LLM |
+| **Database** | MySQL 8.0 |
+| **DevOps** | Docker, Docker Compose, Nginx |
 
-## Setup and Configuration
+---
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/your-username/semantic-profiler.git
-    cd semantic-profiler
-    ```
+## 🚀 Quick Start
 
-2.  **Configure Environment Variables:**
-    The backend requires API keys and a secret key for security. Create a `.env` file in the **root directory** of the project (at the same level as the `backend` and `frontend` folders).
+### 1. Environment Setup
+Create a `.env` file in the project root:
+```env
+DEEPSEEK_API_KEY="your_deepseek_api_key"
+SECRET_KEY="your_random_jwt_secret_key"
+```
 
-    ```bash
-    # In /semantic-profiler/.env
+### 2. Start Application
+From the project root:
+```bash
+cd docker
+docker-compose up --build -d
+```
+> App frontend will be available at **[http://localhost:5173](http://localhost:5173)** and backend API at **http://localhost:8000**.
 
-    # Deepseek API Key (or other OpenAI-compatible API key)
-    DEEPSEEK_API_KEY="your_api_key_here"
+### 3. Create Admin User
+Initialize the default admin account (`admin` / `changeme`):
+```bash
+docker-compose exec backend python -m backend.utils.create_first_user
+```
 
-    # Key for JWT token encryption. Generate one with `openssl rand -hex 32`
-    SECRET_KEY="your_random_32_byte_hex_string_here"
-    ```
-    Replace the placeholder values with your actual keys.
+---
 
-## Running the Application
+## 📁 Project Architecture
 
-The entire application stack (backend, frontend, and database) is managed by a single Docker Compose file.
+```
+semantic_profiler/
+├── backend/            # FastAPI REST API, database models & AI core
+│   ├── app/            # API routes (auth, resume, evaluation)
+│   ├── core/           # RAG pipeline, LLM evaluator, vector store, bias module
+│   └── database/       # SQLAlchemy models & DB connection
+├── frontend/           # React TypeScript UI
+│   └── src/            # Pages (Dashboard, Upload, Login) & components
+├── docker/             # Docker Compose & Dockerfiles
+│   └── docker-compose.yml
+└── uploaded_resumes/   # Storage for candidate resume uploads
+```
 
-1.  **Navigate to the `docker` Directory:**
-    All commands should be run from within the `docker/` folder.
-    ```bash
-    cd docker
-    ```
+---
 
-2.  **Build and Start the Containers:**
-    This command will build the Docker images for the frontend and backend, download all dependencies, and start the services. The first build will take several minutes as it downloads AI models and dependencies.
-    ```bash
-    docker-compose up --build
-    ```
-    You will see logs from all three services (`mysql_db`, `fastapi_backend`, `static_frontend`). Wait until the logs stabilize and you see a message from the backend like:
-    `INFO: Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)`
+## 🔌 Core API Endpoints
 
-## Creating the First User
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/auth/login` | Authenticate user & receive JWT token |
+| `POST` | `/resume/upload` | Upload resume files (`.pdf`, `.docx`) |
+| `POST` | `/evaluation/evaluate` | Evaluate candidates against a job description |
+| `GET` | `/evaluation/results/{id}` | Retrieve evaluation results and bias analysis |
 
-Before you can use the application, you need to create an initial user account.
+---
 
-1.  **Open a NEW terminal window** (do not close the one running `docker-compose up`).
+## 🛑 Stopping the App
 
-2.  **Navigate to the `docker` directory** in the new terminal.
-
-3.  **Execute the User Creation Script:**
-    This command runs the script inside the running `fastapi_backend` container.
-    ```bash
-    docker-compose exec backend python -m backend.utils.create_first_user
-    ```
-    You will see a success message confirming that the user `admin` has been created. The default password is `changeme`. You can change these credentials in the `backend/utils/create_first_user.py` file if you wish.
-
-## Usage
-
-1.  **Access the Application:**
-    Open your web browser and navigate to:
-    **[http://localhost:5173](http://localhost:5173)**
-
-2.  **Log In:**
-    You will be redirected to the login page. Use the credentials you just created:
-    -   **Username:** `admin`
-    -   **Password:** `changeme`
-
-3.  **Start Evaluating:**
-    -   Upload one or more resumes (`.pdf` or `.docx`).
-    -   Enter a job title and description.
-    -   Click "Evaluate Candidates" to get the AI-powered analysis.
-
-## Stopping the Application
-
-To stop all the running containers:
-1.  Go to the terminal window where `docker-compose up` is running.
-2.  Press **`Ctrl + C`**.
-3.  To ensure all resources (including the network) are removed, run:
-    ```bash
-    docker-compose down
-    ```
-    To also remove the database volume (deleting all data), run:
-    ```bash
-    docker-compose down -v
-    ```
+```bash
+cd docker
+docker-compose down       # Stop containers
+docker-compose down -v    # Stop containers and reset database volume
+```
