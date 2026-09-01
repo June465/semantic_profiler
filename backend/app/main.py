@@ -6,12 +6,10 @@ from backend.core import embedding_generator, vector_store, llm_evaluator
 from backend.app.routers import resume, evaluation, auth
 import os
 
-# Define paths for FAISS index and metadata persistence
 FAISS_INDEX_DIR = "faiss_index_data"
 FAISS_INDEX_FILE = os.path.join(FAISS_INDEX_DIR, "resume_index.faiss")
 FAISS_METADATA_FILE = os.path.join(FAISS_INDEX_DIR, "resume_metadata.json")
 
-# Create the FastAPI application instance
 app = FastAPI(
     title="Semantic Profiler API",
     description="API for Retrieval-Augmented Semantic Profiling of Candidate Resumes",
@@ -20,7 +18,6 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    # _MODIFIED_: Changed back to the specific origin for better security practice
     allow_origins=["http://localhost:5173"], 
     allow_credentials=True,
     allow_methods=["*"],
@@ -29,7 +26,6 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    # _MODIFIED_: More explicit logging throughout startup
     print("\n--- [STARTUP] Application startup sequence initiated. ---")
 
     print("--- [STARTUP] Step 1/4: Initializing database tables... ---")
@@ -42,7 +38,6 @@ async def startup_event():
         print("--- [STARTUP] Step 2/4: Embedding model loaded successfully. ---")
     except Exception as e:
         print(f"--- [STARTUP] CRITICAL FAILURE in Step 2/4: Failed to load embedding model: {e} ---")
-        # In a real app, you might want to exit here if the model is critical
         return
 
     embedding_dim = embedding_generator.get_embedding_dimension()

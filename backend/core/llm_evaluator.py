@@ -5,19 +5,15 @@ import re
 from typing import List, Dict, Any, Optional
 
 class LLMEvaluationError(Exception):
-    """Custom exception for LLM evaluation failures."""
     pass
 
 def construct_evaluation_prompt(job_description: str, candidate_chunks: List[str]) -> str:
-    """
-    Constructs a detailed prompt for the LLM to evaluate a candidate.
-    """
+
     if not job_description or not candidate_chunks:
         raise ValueError("Job description and candidate chunks cannot be empty.")
 
     candidate_profile = "\n\n".join(chunk.strip() for chunk in candidate_chunks if chunk.strip())
 
-    # _MODIFIED_: Updated the prompt to request score_breakdown.
     prompt_template = f"""
     You are an expert HR recruiter assistant. Your task is to evaluate a candidate's suitability for a job
     based on the provided job description and relevant resume snippets.
@@ -57,9 +53,6 @@ def initialize_deepseek_client(api_key: str, base_url: str = "https://api.deepse
     return _deepseek_client
 
 def call_llm_for_evaluation(prompt: str, api_key: str, model_name: str = "deepseek-coder") -> Dict[str, Any]:
-    """
-    Sends the constructed prompt to the Deepseek LLM and parses the JSON response.
-    """
     if not api_key:
         raise LLMEvaluationError("Deepseek API key is not provided.")
     if not prompt:
@@ -84,7 +77,6 @@ def call_llm_for_evaluation(prompt: str, api_key: str, model_name: str = "deepse
         raw_text = response_content.strip()
         evaluation_results = json.loads(raw_text)
 
-        # _MODIFIED_: Add score_breakdown to the list of expected keys.
         expected_keys = ["candidate_name", "overall_score", "score_breakdown", "strengths", "weaknesses", "summary"]
         if not all(key in evaluation_results for key in expected_keys):
             raise LLMEvaluationError(f"LLM response missing expected keys. Got: {evaluation_results.keys()}. Raw: {raw_text}")
@@ -98,7 +90,6 @@ def call_llm_for_evaluation(prompt: str, api_key: str, model_name: str = "deepse
     except Exception as e:
         raise LLMEvaluationError(f"An unexpected error occurred during LLM evaluation: {e}")
 
-# ... (main block remains the same, but will now test for the new key)
 if __name__ == '__main__':
     from dotenv import load_dotenv
     load_dotenv()
@@ -118,7 +109,6 @@ if __name__ == '__main__':
             print("\n--- LLM Evaluation Result ---")
             print(json.dumps(evaluation_result, indent=2))
 
-            # _NEW_: Assert the presence and type of the new field.
             assert "score_breakdown" in evaluation_result and isinstance(evaluation_result["score_breakdown"], dict)
             print("\nLive LLM test completed and verified successfully!")
         except Exception as e:

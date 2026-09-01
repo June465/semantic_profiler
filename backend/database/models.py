@@ -21,9 +21,7 @@ class User(Base):
 
 
 class Resume(Base):
-    """
-    SQLAlchemy model for storing resume information.
-    """
+
     __tablename__ = "resumes"
 
     id: Mapped[int] = Column(Integer, primary_key=True, index=True)
@@ -38,9 +36,7 @@ class Resume(Base):
 
 
 class JobDescription(Base):
-    """
-    SQLAlchemy model for storing job description information.
-    """
+
     __tablename__ = "job_descriptions"
 
     id: Mapped[int] = Column(Integer, primary_key=True, index=True)
@@ -55,9 +51,7 @@ class JobDescription(Base):
 
 
 class EvaluationResult(Base):
-    """
-    SQLAlchemy model for storing the results of an LLM-powered evaluation.
-    """
+
     __tablename__ = "evaluation_results"
 
     id: Mapped[int] = Column(Integer, primary_key=True, index=True)
@@ -75,7 +69,6 @@ class EvaluationResult(Base):
     score_discrepancy: Mapped[Optional[float]] = Column(Float, nullable=True)
     bias_flag: Mapped[Optional[bool]] = Column(Boolean, nullable=True, default=False)
     
-    # _NEW_: Add a column for the percentile rank within the evaluation batch.
     percentile_rank: Mapped[Optional[float]] = Column(Float, nullable=True)
 
     evaluation_date: Mapped[datetime] = Column(DateTime, default=datetime.utcnow, nullable=False)

@@ -4,33 +4,15 @@ import os
 import json
 from typing import List, Dict, Tuple, Optional
 
-# NO 'from backend.core.vector_store import ...' here. NONE.
-
-# Global variables for the FAISS index and its metadata mapping
 _faiss_index: Optional[faiss.Index] = None
 _metadata_mapping: List[Dict] = []
 _index_file_path: Optional[str] = None
 _metadata_file_path: Optional[str] = None
 
 class VectorStoreError(Exception):
-    """Custom exception for vector store (FAISS) operations."""
     pass
 
 def initialize_faiss_index(embedding_dimension: int, index_type: str = "FlatL2") -> faiss.Index:
-    """
-    Initializes a FAISS index. Supports FlatL2 for exact search.
-
-    Args:
-        embedding_dimension (int): The dimension of the embedding vectors.
-        index_type (str): The type of FAISS index to create (e.g., "FlatL2").
-                          Currently only FlatL2 is directly supported.
-
-    Returns:
-        faiss.Index: The initialized FAISS index object.
-
-    Raises:
-        VectorStoreError: If an unsupported index type is requested.
-    """
     if embedding_dimension <= 0:
         raise ValueError("Embedding dimension must be a positive integer.")
 
@@ -40,36 +22,18 @@ def initialize_faiss_index(embedding_dimension: int, index_type: str = "FlatL2")
         raise VectorStoreError(f"Unsupported FAISS index type: {index_type}. Only 'FlatL2' is supported for now.")
 
 def get_faiss_index_and_mapping() -> Tuple[Optional[faiss.Index], List[Dict]]:
-    """
-    Returns the globally loaded FAISS index and its metadata mapping.
-    """
+
     global _faiss_index, _metadata_mapping
     return _faiss_index, _metadata_mapping
 
 def set_index_paths(index_path: str, metadata_path: str):
-    """
-    Sets the global file paths for the FAISS index and its metadata.
-    This should be called once, e.g., at application startup.
-    """
+
     global _index_file_path, _metadata_file_path
     _index_file_path = index_path
     _metadata_file_path = metadata_path
 
 def load_faiss_index_and_mapping(index_path: str, metadata_path: str) -> Tuple[faiss.Index, List[Dict]]:
-    """
-    Loads a FAISS index and its metadata mapping from specified file paths.
-    Also updates the global _faiss_index and _metadata_mapping.
 
-    Args:
-        index_path (str): The file path to the FAISS index.
-        metadata_path (str): The file path to the metadata JSON.
-
-    Returns:
-        Tuple[faiss.Index, List[Dict]]: The loaded FAISS index and metadata.
-
-    Raises:
-        VectorStoreError: If loading fails.
-    """
     global _faiss_index, _metadata_mapping, _index_file_path, _metadata_file_path
     if not os.path.exists(index_path):
         raise VectorStoreError(f"FAISS index file not found: {index_path}")
@@ -96,18 +60,7 @@ def load_faiss_index_and_mapping(index_path: str, metadata_path: str) -> Tuple[f
         raise VectorStoreError(f"Failed to load FAISS index or metadata: {e}")
 
 def save_faiss_index_and_mapping(index: faiss.Index, metadata: List[Dict], index_path: str, metadata_path: str) -> None:
-    """
-    Saves a FAISS index and its metadata mapping to specified file paths.
 
-    Args:
-        index (faiss.Index): The FAISS index to save.
-        metadata (List[Dict]): The metadata mapping to save.
-        index_path (str): The file path to save the FAISS index.
-        metadata_path (str): The file path to save the metadata JSON.
-
-    Raises:
-        VectorStoreError: If saving fails.
-    """
     try:
         os.makedirs(os.path.dirname(index_path), exist_ok=True)
         faiss.write_index(index, index_path)
@@ -121,18 +74,7 @@ def save_faiss_index_and_mapping(index: faiss.Index, metadata: List[Dict], index
         raise VectorStoreError(f"Failed to save FAISS index or metadata: {e}")
 
 def add_embeddings_to_index(embeddings: np.ndarray, metadata: List[Dict]) -> None:
-    """
-    Adds embeddings and their corresponding metadata to the global FAISS index.
-    Automatically saves the updated index and metadata if paths are set.
 
-    Args:
-        embeddings (np.ndarray): A 2D NumPy array of embeddings (rows are vectors).
-        metadata (List[Dict]): A list of dictionaries, where each dict is metadata for an embedding.
-                               The order must match the embeddings.
-
-    Raises:
-        VectorStoreError: If the global index is not initialized or if dimensions mismatch.
-    """
     global _faiss_index, _metadata_mapping, _index_file_path, _metadata_file_path
 
     if _faiss_index is None:
@@ -150,7 +92,6 @@ def add_embeddings_to_index(embeddings: np.ndarray, metadata: List[Dict]) -> Non
         _metadata_mapping.extend(metadata)
         print(f"Added {len(embeddings)} embeddings to index. Total vectors: {_faiss_index.ntotal}")
 
-        # Persist automatically after adding
         if _index_file_path and _metadata_file_path:
             save_faiss_index_and_mapping(_faiss_index, _metadata_mapping, _index_file_path, _metadata_file_path)
         else:
@@ -160,20 +101,7 @@ def add_embeddings_to_index(embeddings: np.ndarray, metadata: List[Dict]) -> Non
         raise VectorStoreError(f"Error adding embeddings to FAISS index: {e}")
 
 def search_index(query_embedding: np.ndarray, k: int = 5) -> List[Dict]:
-    """
-    Performs a similarity search in the global FAISS index.
 
-    Args:
-        query_embedding (np.ndarray): A 1D NumPy array representing the query embedding.
-        k (int): The number of nearest neighbors to retrieve.
-
-    Returns:
-        List[Dict]: A list of dictionaries, where each dict contains the metadata
-                    of a retrieved chunk, sorted by similarity (distance).
-
-    Raises:
-        VectorStoreError: If the global index is not initialized or query dimension mismatches.
-    """
     global _faiss_index, _metadata_mapping
 
     if _faiss_index is None:
@@ -185,15 +113,13 @@ def search_index(query_embedding: np.ndarray, k: int = 5) -> List[Dict]:
         raise VectorStoreError(f"Query embedding dimension mismatch: expected {_faiss_index.d}, got {query_embedding.shape[0]}")
 
     try:
-        # FAISS search expects a 2D array for query, even if it's a single vector
         distances, indices = _faiss_index.search(np.array([query_embedding]), k)
 
         results = []
-        for i, idx in enumerate(indices[0]): # indices[0] because search returns a 2D array
-            if idx == -1: # -1 indicates no more results found (can happen if k > ntotal)
+        for i, idx in enumerate(indices[0]): 
+            if idx == -1: 
                 continue
             metadata = _metadata_mapping[idx]
-            # Add distance to metadata for optional sorting/analysis
             metadata['distance'] = float(distances[0][i])
             results.append(metadata)
 
@@ -228,7 +154,7 @@ if __name__ == '__main__':
         set_index_paths(TEST_INDEX_PATH, TEST_METADATA_PATH)
         print("\n--- Initializing FAISS Index ---")
         faiss_index = initialize_faiss_index(EMBEDDING_DIM)
-        _faiss_index = faiss_index # Update global reference for add/search calls
+        _faiss_index = faiss_index
 
         print("\n--- Adding Embeddings and Metadata ---")
         metadata_only = [{"resume_id": c["resume_id"], "chunk_id": c["chunk_id"], "chunk_text": c["chunk_text"]}

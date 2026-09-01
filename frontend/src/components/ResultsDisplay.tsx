@@ -31,7 +31,7 @@ const ResultsDisplay = ({ results, skippedIds }: ResultsDisplayProps) => {
       )}
 
       {showResults && (
-        <div className={styles.resultsContainer}>
+        <div className={styles.resultsContainer} data-testid="results-list-container">
           <h3 className={styles.resultsHeader}>Comparison Results</h3>
           {results
             .sort((a, b) => b.overall_score - a.overall_score)

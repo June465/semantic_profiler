@@ -1,12 +1,19 @@
+// In frontend/src/components/UploadForm.tsx
+
 import React, { useState } from 'react';
 import styles from './UploadForm.module.css';
 
+// _MODIFIED_: The interface is updated to define the new props we are receiving.
+// TypeScript will now know that this component expects to receive these two test IDs.
 interface UploadFormProps {
   isLoading: boolean;
   onSubmit: (files: FileList, title: string, description: string) => void;
+  'data-testid-upload-input': string;
+  'data-testid-evaluate-button': string;
 }
 
-const UploadForm = ({ isLoading, onSubmit }: UploadFormProps) => { 
+// _MODIFIED_: We now destructure the new props from the props object.
+const UploadForm = ({ isLoading, onSubmit, ...props }: UploadFormProps) => { 
   const [resumeFiles, setResumeFiles] = useState<FileList | null>(null);
   const [jobTitle, setJobTitle] = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -50,7 +57,9 @@ const UploadForm = ({ isLoading, onSubmit }: UploadFormProps) => {
           className={styles.input} 
           accept=".pdf,.docx" 
           onChange={handleFileChange} 
-          multiple 
+          multiple
+          // _NEW_: We apply the test ID received from the parent to the file input.
+          data-testid={props['data-testid-upload-input']}
         />
       </div>
       <div className={styles.formGroup}>
@@ -78,6 +87,8 @@ const UploadForm = ({ isLoading, onSubmit }: UploadFormProps) => {
         type="submit" 
         className={styles.button} 
         disabled={isLoading}
+        // _NEW_: We apply the test ID received from the parent to the submit button.
+        data-testid={props['data-testid-evaluate-button']}
       >
         {isLoading ? 'Evaluating...' : 'Evaluate Candidates'}
       </button>

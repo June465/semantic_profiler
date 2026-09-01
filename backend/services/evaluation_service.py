@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 import os
 from typing import List, Optional, Tuple
-# _NEW_: Import NumPy for efficient percentile calculation
 import numpy as np
 
 from backend.database import models
@@ -12,11 +11,8 @@ BIAS_DISCREPANCY_THRESHOLD = 10.0
 class EvaluationServiceError(Exception):
     pass
 
-# _NEW_: Helper function to calculate percentile ranks
 def calculate_percentiles(evaluations: List[models.EvaluationResult]) -> List[models.EvaluationResult]:
-    """
-    Calculates the percentile rank for each evaluation result within the batch.
-    """
+
     if not evaluations:
         return []
 
@@ -26,14 +22,9 @@ def calculate_percentiles(evaluations: List[models.EvaluationResult]) -> List[mo
 
     for eval_result in evaluations:
         if eval_result.overall_score is not None:
-            # Calculate how many scores are less than the current score
             less_than_count = np.sum(scores < eval_result.overall_score)
-            # Calculate how many scores are equal to the current score
             equal_to_count = np.sum(scores == eval_result.overall_score)
             
-            # The rank is the percentage of scores strictly less than the current score,
-            # plus half the percentage of scores equal to the current score.
-            # This handles ties gracefully.
             rank = (less_than_count + 0.5 * equal_to_count) / len(scores) * 100
             eval_result.percentile_rank = round(rank, 2)
             
@@ -50,17 +41,10 @@ async def perform_evaluation(
 
     db_job_description = models.JobDescription(description=job_description_text, title=job_title)
     db.add(db_job_description)
-    
-    # _FIXED_: Use db.flush() here. This sends the INSERT to the DB and assigns
-    # an ID to db_job_description without ending the transaction.
+
     db.flush()
     
     embedding_model = embedding_generator.initialize_embedding_model()
-    # ... (rest of the function's logic is correct as provided before)
-    # ...
-    # This includes the loop for evaluations, appending to a temp list,
-    # the post-processing step to calculate percentiles, and the final db.commit().
-    # Only the initial db.commit() needed to be changed to db.flush().
 
     job_description_embedding = embedding_generator.get_embeddings(job_description_text, embedding_model)
 
